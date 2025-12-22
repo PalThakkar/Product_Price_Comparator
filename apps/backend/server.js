@@ -165,6 +165,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const morgan = require('morgan');
 const { scrapeAmazonSearch } = require('../../packages/scrapers/amazon');
+const { scrapeFlipkartSearch } = require("../../packages/scrapers/flipkart");
 
 const app = express();
 
@@ -233,6 +234,38 @@ app.get('/api/products', async (req, res) => {
     res.status(500).json({ error: err.message || 'Failed to fetch products' });
   }
 });
+
+// GET /api/compare?query=iphone
+app.get("/api/compare", async (req, res) => {
+  try {
+    const query = String(req.query.query || "").trim();
+    if (!query) return res.status(400).json({ error: "query required" });
+
+    console.log("COMPARE query:", query);
+
+    const [amazon, flipkart] = await Promise.all([
+      scrapeAmazonSearch(query, 8),
+      scrapeFlipkartSearch(query, 8),
+    ]);
+
+  const combined = [...amazon, ...flipkart]
+  .sort((a, b) => {
+    if (a.price == null) return 1;
+    if (b.price == null) return -1;
+    return a.price - b.price;
+  });
+
+    res.json({
+      query,
+      count: combined.length,
+      results: combined,
+    });
+  } catch (err) {
+    console.error("COMPARE ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 // Manual insert (testing)
 app.post('/api/products', async (req, res) => {
