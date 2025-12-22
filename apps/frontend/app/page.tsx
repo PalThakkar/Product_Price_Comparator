@@ -12,28 +12,14 @@ export default function Home() {
   const BACKEND_URL =
     process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000";
 
-  // const handleSearch = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   setLoading(true);
-  //   setError("");
 
-  //   try {
-  //     const response = await axios.get(`${BACKEND_URL}/api/products`);
-  //     setProducts(response.data);
-  //   } catch (err: any) {
-  //     setError(err.message || "Failed to fetch products");
-  //     console.error("Error fetching products:", err);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
   async function handleSearch(e: React.FormEvent) {
   e.preventDefault();
   setLoading(true);
   setError("");
 
   try {
-    const res = await axios.get(`${BACKEND_URL}/api/products`, {
+    const res = await axios.get(`${BACKEND_URL}/api/compare`, {
       params: { query: searchQuery }
     });
     setProducts(res.data.results || []); // results array
@@ -46,7 +32,6 @@ export default function Home() {
     setLoading(false);
   }
 }
-
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
