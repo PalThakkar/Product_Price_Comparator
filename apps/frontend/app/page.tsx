@@ -6,6 +6,7 @@ import axios from "axios";
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [products, setProducts] = useState([]);
+  const [counts, setCounts] = useState({ amazon: 0, flipkart: 0, croma: 0 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -23,6 +24,11 @@ export default function Home() {
       params: { query: searchQuery }
     });
     setProducts(res.data.results || []); // results array
+    setCounts({
+      amazon: res.data.amazon || 0,
+      flipkart: res.data.flipkart || 0,
+      croma: res.data.croma || 0,
+    });
   // } catch (err: any) {
   //   setError(err?.message || "Failed to fetch products");
   }catch (err: any) {
@@ -73,6 +79,18 @@ export default function Home() {
           </div>
         )}
 
+        {/* Results Summary */}
+        {products.length > 0 && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 className="text-lg font-semibold text-blue-800 mb-2">Search Results</h3>
+            <div className="flex gap-4 text-sm">
+              <span className="text-orange-600">Amazon: {counts.amazon}</span>
+              <span className="text-blue-600">Flipkart: {counts.flipkart}</span>
+              <span className="text-green-600">Croma: {counts.croma}</span>
+            </div>
+          </div>
+        )}
+
         {/* Products List */}
 <div className="bg-white rounded-lg shadow-lg p-6">
   <h2 className="text-2xl font-semibold text-gray-800 mb-6">
@@ -115,7 +133,12 @@ export default function Home() {
             />
           )}
           <div className="flex-1">
-            <div className="text-sm text-gray-500">{p.site}</div>
+            <div className={`text-sm font-semibold ${
+              p.site === 'Amazon' ? 'text-orange-600' :
+              p.site === 'Flipkart' ? 'text-blue-600' :
+              p.site === 'Croma' ? 'text-green-600' :
+              'text-gray-500'
+            }`}>{p.site}</div>
             <div className="font-medium">{p.title}</div>
           </div>
           <div className="text-green-700 font-bold whitespace-nowrap">
