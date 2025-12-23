@@ -9,18 +9,24 @@ services:
       - mongo-data:/data/db
     environment:
       MONGO_INITDB_DATABASE: pricewatch
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
     build:
       context: .
       dockerfile: docker/Dockerfile.backend
     depends_on:
-      - mongo
+      mongo:
+        condition: service_healthy
     environment:
       PORT: 4000
       MONGO_URI: mongodb://mongo:27017/pricewatch
     ports:
-      - "5000:5000"
+      - "4000:4000"
 
   frontend:
     build:

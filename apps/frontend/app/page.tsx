@@ -6,7 +6,7 @@ import axios from "axios";
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [products, setProducts] = useState([]);
-  const [counts, setCounts] = useState({ amazon: 0, flipkart: 0, croma: 0 });
+  const [counts, setCounts] = useState({ amazon: 0, flipkart: 0, croma: 0, reliance: 0 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -28,6 +28,7 @@ export default function Home() {
       amazon: res.data.amazon || 0,
       flipkart: res.data.flipkart || 0,
       croma: res.data.croma || 0,
+      reliance: res.data.reliance || 0,
     });
   // } catch (err: any) {
   //   setError(err?.message || "Failed to fetch products");
@@ -87,6 +88,7 @@ export default function Home() {
               <span className="text-orange-600">Amazon: {counts.amazon}</span>
               <span className="text-blue-600">Flipkart: {counts.flipkart}</span>
               <span className="text-green-600">Croma: {counts.croma}</span>
+              <span className="text-purple-600">Reliance: {counts.reliance}</span>
             </div>
           </div>
         )}
@@ -137,6 +139,7 @@ export default function Home() {
               p.site === 'Amazon' ? 'text-orange-600' :
               p.site === 'Flipkart' ? 'text-blue-600' :
               p.site === 'Croma' ? 'text-green-600' :
+              p.site === 'Reliance' ? 'text-purple-600' :
               'text-gray-500'
             }`}>{p.site}</div>
             <div className="font-medium">{p.title}</div>
