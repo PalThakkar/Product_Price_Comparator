@@ -9,6 +9,11 @@ services:
       - mongo-data:/data/db
     environment:
       MONGO_INITDB_DATABASE: pricewatch
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7

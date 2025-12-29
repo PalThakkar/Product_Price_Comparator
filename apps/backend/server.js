@@ -162,7 +162,9 @@
 console.log("🔥🔥🔥 BACKEND BOOTED 🔥🔥🔥");
 
 
-require('dotenv').config();
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -170,6 +172,7 @@ const morgan = require('morgan');
 const { scrapeAmazonSearch } = require('../../packages/scrapers/amazon');
 const { scrapeFlipkartSearch } = require("../../packages/scrapers/flipkart");
 const { scrapeCromaSearch } = require("../../packages/scrapers/cromaApi");
+const { scrapeRelianceSearch } = require("../../packages/scrapers/relianceApi");
 
 const app = express();
 
@@ -252,6 +255,7 @@ app.get("/api/compare", async (req, res) => {
   let amazon = [];
   let flipkart = [];
   let croma = [];
+  let reliance = [];
 
   try {
     console.log("▶️ Calling Amazon...");
@@ -277,7 +281,15 @@ app.get("/api/compare", async (req, res) => {
     console.error("❌ Croma failed:", e.message);
   }
 
-  const combined = [...amazon, ...flipkart, ...croma].sort((a, b) => {
+  try {
+    console.log("▶️ Calling Reliance...");
+    reliance = await scrapeRelianceSearch(query, 8);
+    console.log("✅ Reliance:", reliance.length);
+  } catch (e) {
+    console.error("❌ Reliance failed:", e.message);
+  }
+
+  const combined = [...amazon, ...flipkart, ...croma, ...reliance].sort((a, b) => {
     if (a.price == null) return 1;
     if (b.price == null) return -1;
     return a.price - b.price;
@@ -291,6 +303,7 @@ app.get("/api/compare", async (req, res) => {
     amazon: amazon.length,
     flipkart: flipkart.length,
     croma: croma.length,
+    reliance: reliance.length,
     results: combined,
   });
 });
@@ -312,7 +325,7 @@ app.post('/api/products', async (req, res) => {
 async function start() {
   try {
     await mongoose.connect(MONGO);
-    app.listen(PORT, () => console.log(`Server running ${PORT}`));
+    app.listen(PORT, '0.0.0.0', () => console.log(`Server running ${PORT}`));
   } catch (err) {
     console.error('Failed to connect to MongoDB:', err);
     process.exit(1);
