@@ -176,7 +176,13 @@ const { scrapeRelianceSearch } = require("../../packages/scrapers/relianceApi");
 
 const app = express();
 
-app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:3000' }));
+app.use(cors({ 
+  origin: [
+    process.env.CORS_ORIGIN || 'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002'
+  ] 
+}));
 app.use(express.json());
 app.use(morgan('dev'));
 
@@ -204,6 +210,18 @@ const productSchema = new mongoose.Schema(
   { timestamps: true }
 );
 const Product = mongoose.model('Product', productSchema);
+
+const alertSchema = new mongoose.Schema(
+  {
+    user_id: { type: String, required: true },
+    product_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+    target_price: { type: Number, required: true },
+    is_active: { type: Boolean, default: true },
+    triggered_at: Date,
+  },
+  { timestamps: true }
+);
+const Alert = mongoose.model('Alert', alertSchema);
 
 // GET /api/products?query=iphone[&debug=1]
 app.get('/api/products', async (req, res) => {
@@ -308,7 +326,176 @@ app.get("/api/compare", async (req, res) => {
   });
 });
 
+// ALERT APIs
 
+// POST /api/alerts - Create new alert
+app.post('/api/alerts', async (req, res) => {
+  try {
+    const { user_id, product_id, target_price } = req.body;
+    
+    if (!user_id || !product_id || !target_price) {
+      return res.status(400).json({ error: 'user_id, product_id, and target_price are required' });
+    }
+
+    const product = await Product.findById(product_id);
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    const alert = new Alert({
+      user_id,
+      product_id,
+      target_price,
+      is_active: true
+    });
+
+    await alert.save();
+    res.status(201).json(alert);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/alerts - Get user's alerts
+app.get('/api/alerts', async (req, res) => {
+  try {
+    const { user_id } = req.query;
+    
+    if (!user_id) {
+      return res.status(400).json({ error: 'user_id is required' });
+    }
+
+    const alerts = await Alert.find({ user_id })
+      .populate('product_id', 'title url currentPrice site')
+      .sort({ createdAt: -1 });
+    
+    res.json(alerts);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/alerts/:id - Update alert (disable/update)
+app.patch('/api/alerts/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    
+    const alert = await Alert.findByIdAndUpdate(
+      id,
+      updates,
+      { new: true, runValidators: true }
+    ).populate('product_id', 'title url currentPrice site');
+    
+    if (!alert) {
+      return res.status(404).json({ error: 'Alert not found' });
+    }
+    
+    res.json(alert);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PRODUCT DETAIL APIs
+
+// GET /api/products/:id - Get product by ID
+app.get('/api/products/:id', async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    res.json(product);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/products/:id/price-history - Get product price history
+app.get('/api/products/:id/price-history', async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id, 'priceHistory title url currentPrice');
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    res.json({
+      product: {
+        id: product._id,
+        title: product.title,
+        url: product.url,
+        currentPrice: product.currentPrice
+      },
+      priceHistory: product.priceHistory.sort((a, b) => new Date(b.at) - new Date(a.at))
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/products/:id/suggested-price - Get suggested price based on history
+app.get('/api/products/:id/suggested-price', async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id, 'priceHistory currentPrice');
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    const { priceHistory, currentPrice } = product;
+    
+    if (!priceHistory || priceHistory.length === 0) {
+      return res.json({
+        suggestedPrice: currentPrice,
+        reasoning: 'No price history available',
+        confidence: 'low'
+      });
+    }
+
+    const prices = priceHistory.map(h => h.price).filter(p => p != null);
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+    const avgPrice = prices.reduce((sum, p) => sum + p, 0) / prices.length;
+    
+    let suggestedPrice = currentPrice;
+    let reasoning = '';
+    let confidence = 'medium';
+
+    if (currentPrice > avgPrice * 1.1) {
+      suggestedPrice = avgPrice * 0.95;
+      reasoning = `Current price (${currentPrice}) is above historical average (${avgPrice.toFixed(2)}). Suggested price is near average.`;
+      confidence = 'high';
+    } else if (currentPrice < minPrice * 1.05) {
+      suggestedPrice = currentPrice;
+      reasoning = `Current price (${currentPrice}) is near historical minimum (${minPrice}). Good time to buy!`;
+      confidence = 'high';
+    } else {
+      suggestedPrice = avgPrice;
+      reasoning = `Current price (${currentPrice}) is within normal range. Historical average: ${avgPrice.toFixed(2)}, Min: ${minPrice}, Max: ${maxPrice}`;
+      confidence = 'medium';
+    }
+
+    res.json({
+      suggestedPrice: Math.round(suggestedPrice * 100) / 100,
+      currentPrice,
+      statistics: {
+        minPrice,
+        maxPrice,
+        avgPrice: Math.round(avgPrice * 100) / 100,
+        dataPoints: prices.length
+      },
+      reasoning,
+      confidence
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Manual insert (testing)
 app.post('/api/products', async (req, res) => {

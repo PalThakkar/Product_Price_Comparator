@@ -53,6 +53,13 @@ export default function Home() {
           </p>
         </div>
 
+        {/* Navigation */}
+        <div className="mb-8 flex justify-center gap-4">
+          <a href="/alerts" className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+            Manage Alerts
+          </a>
+        </div>
+
         {/* Search Bar */}
         <form onSubmit={handleSearch} className="mb-8">
           <div className="flex gap-4">
@@ -144,8 +151,19 @@ export default function Home() {
             }`}>{p.site}</div>
             <div className="font-medium">{p.title}</div>
           </div>
-          <div className="text-green-700 font-bold whitespace-nowrap">
-            {p.price != null ? `₹${p.price.toLocaleString()}` : "N/A"}
+          <div className="text-right">
+            <div className="text-green-700 font-bold whitespace-nowrap">
+              {p.price != null ? `₹${p.price.toLocaleString()}` : "N/A"}
+            </div>
+            {p._id && (
+              <a 
+                href={`/products/${p._id}`}
+                className="text-blue-600 text-sm hover:underline mt-1 inline-block"
+                onClick={(e) => e.stopPropagation()}
+              >
+                View Details →
+              </a>
+            )}
           </div>
         </a>
       ))}
