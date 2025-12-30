@@ -1,5 +1,6 @@
 "use client";
 
+import { isLoggedIn } from "../utils/auth";
 import { useState, useEffect } from "react";
 import axios from "axios";
 
@@ -11,11 +12,10 @@ export default function AlertsPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000";
-  const [userId, setUserId] = useState("test123"); // Default test user
+  // const [userId, setUserId] = useState("test123"); // Default test user
 
   // Form state
   const [newAlert, setNewAlert] = useState({
-    user_id: userId,
     product_id: "",
     target_price: ""
   });
@@ -26,16 +26,49 @@ export default function AlertsPage() {
     loadProducts();
   }, []);
 
-  async function loadAlerts() {
-    try {
-      const res = await axios.get(`${BACKEND_URL}/api/alerts`, {
-        params: { user_id: userId }
-      });
-      setAlerts(res.data);
-    } catch (err: any) {
+  useEffect(() => {
+  if (!isLoggedIn()) {
+    window.location.href = "/login";
+  }
+}, []);
+
+  // async function loadAlerts() {
+  //   try {
+  //     const res = await axios.get(`${BACKEND_URL}/api/alerts`, {
+  //       params: { user_id: userId }
+  //     });
+  //     setAlerts(res.data);
+  //   } catch (err: any) {
+  //     setError("Failed to load alerts");
+  //   }
+  // }
+
+async function loadAlerts() {
+  try {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setError("Please login to view alerts");
+      return;
+    }
+
+    const res = await axios.get(`${BACKEND_URL}/api/alerts`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    setAlerts(res.data);
+    setError("");
+  } catch (err: any) {
+    if (err.response?.status === 401) {
+      setError("Session expired. Please login again.");
+    } else {
       setError("Failed to load alerts");
     }
   }
+}
+
 
   async function loadSampleProducts() {
     try {
@@ -75,12 +108,26 @@ export default function AlertsPage() {
     setError("");
 
     try {
-      await axios.post(`${BACKEND_URL}/api/alerts`, {
-        ...newAlert,
-        target_price: parseFloat(newAlert.target_price)
-      });
+      // await axios.post(`${BACKEND_URL}/api/alerts`, {
+      //   ...newAlert,
+      //   target_price: parseFloat(newAlert.target_price)
+      // });
+
+      await axios.post(
+  `${BACKEND_URL}/api/alerts`,
+  {
+    product_id: newAlert.product_id,
+    target_price: parseFloat(newAlert.target_price),
+  },
+  {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    },
+  }
+);
+
       
-      setNewAlert({ user_id: userId, product_id: "", target_price: "" });
+      setNewAlert({ product_id: "", target_price: "" });
       setShowCreateForm(false);
       loadAlerts();
     } catch (err: any) {
@@ -92,9 +139,14 @@ export default function AlertsPage() {
 
   async function toggleAlert(alertId: string, isActive: boolean) {
     try {
-      await axios.patch(`${BACKEND_URL}/api/alerts/${alertId}`, {
-        is_active: isActive
-      });
+      await axios.patch(`${BACKEND_URL}/api/alerts/${alertId}`, 
+      {is_active: isActive},
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
       loadAlerts();
     } catch (err: any) {
       setError("Failed to update alert");
@@ -115,7 +167,7 @@ export default function AlertsPage() {
         </div>
 
         {/* User ID Input */}
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             User ID:
           </label>
@@ -125,7 +177,7 @@ export default function AlertsPage() {
             onChange={(e) => setUserId(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-        </div>
+        </div> */}
 
         {/* Create Alert Button */}
         <div className="mb-8 flex gap-4">

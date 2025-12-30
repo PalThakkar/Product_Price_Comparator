@@ -169,10 +169,15 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const morgan = require('morgan');
+const authRoutes = require("./routes/auth");
+const auth = require("./middleware/auth");
+
+
 const { scrapeAmazonSearch } = require('../../packages/scrapers/amazon');
 const { scrapeFlipkartSearch } = require("../../packages/scrapers/flipkart");
 const { scrapeCromaSearch } = require("../../packages/scrapers/cromaApi");
 const { scrapeRelianceSearch } = require("../../packages/scrapers/relianceApi");
+
 
 const app = express();
 
@@ -185,6 +190,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(morgan('dev'));
+app.use("/api/auth", authRoutes);
 
 const PORT = process.env.PORT || 4000;
 const MONGO = process.env.MONGO_URI;
@@ -329,11 +335,14 @@ app.get("/api/compare", async (req, res) => {
 // ALERT APIs
 
 // POST /api/alerts - Create new alert
-app.post('/api/alerts', async (req, res) => {
+app.post('/api/alerts', auth, async (req, res) => {
+  
   try {
-    const { user_id, product_id, target_price } = req.body;
+    const user_id = req.user.id; // ✅ from JWT
+
+    const { product_id, target_price } = req.body;
     
-    if (!user_id || !product_id || !target_price) {
+    if (!product_id || !target_price) {
       return res.status(400).json({ error: 'user_id, product_id, and target_price are required' });
     }
 
@@ -358,9 +367,9 @@ app.post('/api/alerts', async (req, res) => {
 });
 
 // GET /api/alerts - Get user's alerts
-app.get('/api/alerts', async (req, res) => {
+app.get('/api/alerts', auth, async (req, res) => {
   try {
-    const { user_id } = req.query;
+    const user_id = req.user.id;
     
     if (!user_id) {
       return res.status(400).json({ error: 'user_id is required' });
@@ -378,7 +387,7 @@ app.get('/api/alerts', async (req, res) => {
 });
 
 // PATCH /api/alerts/:id - Update alert (disable/update)
-app.patch('/api/alerts/:id', async (req, res) => {
+app.patch('/api/alerts/:id', auth, async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
