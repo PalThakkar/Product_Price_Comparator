@@ -3,11 +3,20 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import axios from "axios";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 export default function ProductDetailPage() {
   const params = useParams();
   const productId = params.id as string;
-  
+
   const [product, setProduct] = useState<any>(null);
   const [priceHistory, setPriceHistory] = useState([]);
   const [suggestedPrice, setSuggestedPrice] = useState<any>(null);
@@ -76,13 +85,12 @@ export default function ProductDetailPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.title}</h1>
           <div className="flex items-center gap-4 text-gray-600">
-            <span className={`font-medium ${
-              product.site === 'Amazon' ? 'text-orange-600' :
-              product.site === 'Flipkart' ? 'text-blue-600' :
-              product.site === 'Croma' ? 'text-green-600' :
-              product.site === 'Reliance' ? 'text-purple-600' :
-              'text-gray-500'
-            }`}>{product.site}</span>
+            <span className={`font-medium ${product.site === 'Amazon' ? 'text-orange-600' :
+                product.site === 'Flipkart' ? 'text-blue-600' :
+                  product.site === 'Croma' ? 'text-green-600' :
+                    product.site === 'Reliance' ? 'text-purple-600' :
+                      'text-gray-500'
+              }`}>{product.site}</span>
             <span>•</span>
             <a href={product.url} target="_blank" className="text-blue-600 hover:underline">
               View Product
@@ -95,31 +103,28 @@ export default function ProductDetailPage() {
           <div className="flex gap-4 border-b">
             <button
               onClick={() => setActiveTab("details")}
-              className={`px-4 py-2 font-medium transition-colors ${
-                activeTab === "details"
+              className={`px-4 py-2 font-medium transition-colors ${activeTab === "details"
                   ? "border-b-2 border-blue-600 text-blue-600"
                   : "text-gray-600 hover:text-gray-800"
-              }`}
+                }`}
             >
               Product Details
             </button>
             <button
               onClick={() => setActiveTab("history")}
-              className={`px-4 py-2 font-medium transition-colors ${
-                activeTab === "history"
+              className={`px-4 py-2 font-medium transition-colors ${activeTab === "history"
                   ? "border-b-2 border-blue-600 text-blue-600"
                   : "text-gray-600 hover:text-gray-800"
-              }`}
+                }`}
             >
               Price History
             </button>
             <button
               onClick={() => setActiveTab("suggestions")}
-              className={`px-4 py-2 font-medium transition-colors ${
-                activeTab === "suggestions"
+              className={`px-4 py-2 font-medium transition-colors ${activeTab === "suggestions"
                   ? "border-b-2 border-blue-600 text-blue-600"
                   : "text-gray-600 hover:text-gray-800"
-              }`}
+                }`}
             >
               Price Analysis
             </button>
@@ -160,21 +165,63 @@ export default function ProductDetailPage() {
           {/* Price History Tab */}
           {activeTab === "history" && (
             <div>
-              <h2 className="text-2xl font-semibold mb-4">Price History</h2>
+              <h2 className="text-2xl font-semibold mb-6">Price History</h2>
               {priceHistory.length === 0 ? (
                 <p className="text-gray-500">No price history available</p>
               ) : (
-                <div className="space-y-2">
-                  {priceHistory.map((history: any, index: number) => (
-                    <div key={index} className="flex justify-between items-center p-3 border rounded">
-                      <span className="font-medium">₹{history.price?.toLocaleString()}</span>
-                      <span className="text-gray-600">
-                        {new Date(history.at).toLocaleDateString()} {new Date(history.at).toLocaleTimeString()}
-                      </span>
-                    </div>
-                  ))}
+                <div className="h-[400px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={priceHistory}
+                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="at"
+                        tickFormatter={(date) => new Date(date).toLocaleDateString()}
+                      />
+                      <YAxis />
+                      <Tooltip
+                        labelFormatter={(date) => new Date(date).toLocaleString()}
+                        formatter={(value: number) => [`₹${value.toLocaleString()}`, "Price"]}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="price"
+                        stroke="#2563eb"
+                        strokeWidth={2}
+                        activeDot={{ r: 8 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
               )}
+
+              <div className="mt-8">
+                <h3 className="text-lg font-medium mb-3">Detailed History</h3>
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {priceHistory.map((history: any, index: number) => (
+                        <tr key={index}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {new Date(history.at).toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            ₹{history.price?.toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           )}
 
@@ -182,7 +229,7 @@ export default function ProductDetailPage() {
           {activeTab === "suggestions" && suggestedPrice && (
             <div>
               <h2 className="text-2xl font-semibold mb-4">Price Analysis & Suggestions</h2>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div className="p-4 border rounded-lg">
                   <h3 className="font-semibold mb-2">Current Price</h3>
@@ -221,11 +268,10 @@ export default function ProductDetailPage() {
                 <p className="text-gray-700 mb-2">{suggestedPrice.reasoning}</p>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">Confidence:</span>
-                  <span className={`px-2 py-1 rounded text-xs ${
-                    suggestedPrice.confidence === 'high' ? 'bg-green-100 text-green-800' :
-                    suggestedPrice.confidence === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
+                  <span className={`px-2 py-1 rounded text-xs ${suggestedPrice.confidence === 'high' ? 'bg-green-100 text-green-800' :
+                      suggestedPrice.confidence === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-gray-100 text-gray-800'
+                    }`}>
                     {suggestedPrice.confidence}
                   </span>
                 </div>

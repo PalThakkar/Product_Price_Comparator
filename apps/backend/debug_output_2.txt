@@ -1,0 +1,5 @@
+﻿≡ƒöÑ≡ƒöÑ≡ƒöÑ BACKEND BOOTED ≡ƒöÑ≡ƒöÑ≡ƒöÑ
+[dotenv@17.2.3] injecting env (7) from .env -- tip: ≡ƒæÑ sync secrets across teammates & machines: https://dotenvx.com/ops
+≡ƒöÑ≡ƒöÑ≡ƒöÑ CROMA API FILE LOADED ≡ƒöÑ≡ƒöÑ≡ƒöÑ
+Mongoose connected
+Server running 4000

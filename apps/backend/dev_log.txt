@@ -1,0 +1,18 @@
+﻿
+> backend@1.0.0 dev
+> nodemon server.js
+
+[33m[nodemon] 3.1.11[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): *.*[39m
+[33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[32m[nodemon] starting `node server.js`[39m
+≡ƒöÑ≡ƒöÑ≡ƒöÑ BACKEND BOOTED ≡ƒöÑ≡ƒöÑ≡ƒöÑ
+[dotenv@17.2.3] injecting env (7) from .env -- tip: ≡ƒöÉ encrypt with Dotenvx: https://dotenvx.com
+≡ƒöÑ≡ƒöÑ≡ƒöÑ CROMA API FILE LOADED ≡ƒöÑ≡ƒöÑ≡ƒöÑ
+Mongoose connected
+Server running 4000
+Mongoose disconnected
+Mongoose connected
+Mongoose disconnected
+Mongoose connected
