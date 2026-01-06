@@ -18,7 +18,7 @@ export default function ProductDetailPage() {
   const productId = params.id as string;
 
   const [product, setProduct] = useState<any>(null);
-  const [priceHistory, setPriceHistory] = useState([]);
+  const [priceHistory, setPriceHistory] = useState<any[]>([]);
   const [suggestedPrice, setSuggestedPrice] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -178,12 +178,12 @@ export default function ProductDetailPage() {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis
                         dataKey="at"
-                        tickFormatter={(date) => new Date(date).toLocaleDateString()}
+                        tickFormatter={(date: any) => new Date(date).toLocaleDateString()}
                       />
                       <YAxis />
                       <Tooltip
-                        labelFormatter={(date) => new Date(date).toLocaleString()}
-                        formatter={(value: number) => [`₹${value.toLocaleString()}`, "Price"]}
+                        labelFormatter={(date: any) => new Date(date).toLocaleString()}
+                        formatter={(value: any) => [`₹${value?.toLocaleString()}`, "Price"]}
                       />
                       <Line
                         type="monotone"

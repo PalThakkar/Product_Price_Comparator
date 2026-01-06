@@ -124,13 +124,24 @@ router.post("/register", async (req, res) => {
       password: hashedPassword,
     });
 
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
     res.status(201).json({
       message: "User registered successfully",
-      userId: user._id,
+      token,
+      user: {
+        id: user._id,
+        email: user.email
+      }
     });
   } catch (err) {
     console.error("REGISTER ERROR:", err);
-    res.status(500).json({ error: "Registration failed" });
+    console.error("JWT_SECRET present:", !!process.env.JWT_SECRET);
+    res.status(500).json({ error: "Registration failed: " + err.message });
   }
 });
 

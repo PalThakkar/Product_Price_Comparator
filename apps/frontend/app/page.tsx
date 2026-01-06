@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import axios from "axios";
+import AlertModal from "./components/AlertModal";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -9,6 +10,10 @@ export default function Home() {
   const [counts, setCounts] = useState({ amazon: 0, flipkart: 0, croma: 0, reliance: 0 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  
+  // Alert Modal State
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
   const BACKEND_URL =
     process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000";
@@ -39,6 +44,11 @@ export default function Home() {
     setLoading(false);
   }
 }
+
+  const openAlertModal = (product: any) => {
+    setSelectedProduct(product);
+    setIsAlertOpen(true);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
@@ -128,18 +138,18 @@ export default function Home() {
   ) : (
     <div className="space-y-4">
       {products.map((p: any, i: number) => (
-        <a
+        <div
           key={i}
-          href={p.productUrl}
-          target="_blank"
-          className="border rounded p-4 flex gap-4 hover:bg-gray-50"
+          className="border rounded p-4 flex gap-4 hover:bg-gray-50 transition-colors group"
         >
           {p.image && (
-            <img
-              src={p.image}
-              className="w-20 h-20 object-contain"
-              alt={p.title}
-            />
+             <a href={p.productUrl} target="_blank" className="block">
+              <img
+                src={p.image}
+                className="w-24 h-24 object-contain"
+                alt={p.title}
+              />
+            </a>
           )}
           <div className="flex-1">
             <div className={`text-sm font-semibold ${
@@ -149,28 +159,57 @@ export default function Home() {
               p.site === 'Reliance' ? 'text-purple-600' :
               'text-gray-500'
             }`}>{p.site}</div>
-            <div className="font-medium">{p.title}</div>
+            <a href={p.productUrl} target="_blank" className="font-medium hover:text-blue-600 line-clamp-2 mb-2">
+              {p.title}
+            </a>
+            
+             <div className="flex items-center gap-4 mt-2">
+                 {/* Set Alert Button */}
+                 {p._id ? ( // Only allow setting alert if product is saved (has ID). If not, we might need to save it first. 
+                 // Wait, backend upserts samples. New search results from scraped data might NOT have _id if they are just returned from scraper but not saved yet?
+                 // server.js upserts top 3. But list can have 8. 
+                 // If p._id is missing, we can't create an alert because we need product_id.
+                 // We should probably allow the user to click "View Details" to save it, or auto-save on alert set.
+                 // The backend `POST /api/alerts` requires `product_id`.
+                 // If p._id is missing, let's hide the button or just not show it.
+                 // Or we can rely on `scrapeAmazonSearch` results which are merged with DB results?
+                 // `api/products` returns results. 
+                 // If the result came from DB, it has _id. If it came from live scrape and wasn't upserted (only top 3 are), it might lack _id.
+                 // Let's assume for now we only show button if _id exists.
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); openAlertModal(p); }}
+                        className="text-sm px-3 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition-colors"
+                    >
+                        Set Alert
+                    </button>
+                 ) : (
+                     <span className="text-xs text-gray-400" title="View details to save and set alert">Save to Set Alert</span>
+                 )}
+             </div>
           </div>
           <div className="text-right">
-            <div className="text-green-700 font-bold whitespace-nowrap">
+            <div className="text-green-700 font-bold whitespace-nowrap text-xl">
               {p.price != null ? `₹${p.price.toLocaleString()}` : "N/A"}
             </div>
-            {p._id && (
-              <a 
-                href={`/products/${p._id}`}
-                className="text-blue-600 text-sm hover:underline mt-1 inline-block"
-                onClick={(e) => e.stopPropagation()}
-              >
-                View Details →
-              </a>
-            )}
+            <a 
+              href={p.productUrl} 
+              target="_blank"
+              className="text-sm text-gray-500 block mt-1 hover:underline"
+            >
+              Go to Site
+            </a>
           </div>
-        </a>
+        </div>
       ))}
     </div>
   )}
 </div>
 
+    <AlertModal 
+        isOpen={isAlertOpen} 
+        onClose={() => setIsAlertOpen(false)} 
+        product={selectedProduct} 
+    />
       </div>
     </div>
   );
