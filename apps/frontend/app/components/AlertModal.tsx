@@ -25,7 +25,7 @@ export default function AlertModal({ isOpen, onClose, product }: AlertModalProps
   // "Manage Alerts" implies some account management.
   // I will assume the user has a token in localStorage "token" or similar, based on `backend/middleware/auth.js` (I didn't read it but it's standard).
   // I will check `apps/frontend/app/login/page.tsx` or similar if I had time, but standard practice is `localStorage.getItem('token')`.
-  
+
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -35,7 +35,7 @@ export default function AlertModal({ isOpen, onClose, product }: AlertModalProps
     e.preventDefault();
     setLoading(true);
     setMsg("");
-    
+
     try {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -87,7 +87,7 @@ export default function AlertModal({ isOpen, onClose, product }: AlertModalProps
               placeholder="Enter target price"
             />
           </div>
-          
+
           {msg && (
             <div className={`text-sm p-2 rounded ${msg.includes("success") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
               {msg}

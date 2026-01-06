@@ -16,3 +16,10 @@ Mongoose disconnected
 Mongoose connected
 Mongoose disconnected
 Mongoose connected
+[32m[nodemon] restarting child process[39m
+[32m[nodemon] starting `node server.js`[39m
+≡ƒöÑ≡ƒöÑ≡ƒöÑ BACKEND BOOTED ≡ƒöÑ≡ƒöÑ≡ƒöÑ
+[dotenv@17.2.3] injecting env (7) from .env -- tip: ΓÜÖ∩╕Å  load multiple .env files with { path: ['.env.local', '.env'] }
+≡ƒöÑ≡ƒöÑ≡ƒöÑ CROMA API FILE LOADED ≡ƒöÑ≡ƒöÑ≡ƒöÑ
+Mongoose connected
+Server running 4000

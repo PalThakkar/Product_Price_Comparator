@@ -86,10 +86,10 @@ export default function ProductDetailPage() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.title}</h1>
           <div className="flex items-center gap-4 text-gray-600">
             <span className={`font-medium ${product.site === 'Amazon' ? 'text-orange-600' :
-                product.site === 'Flipkart' ? 'text-blue-600' :
-                  product.site === 'Croma' ? 'text-green-600' :
-                    product.site === 'Reliance' ? 'text-purple-600' :
-                      'text-gray-500'
+              product.site === 'Flipkart' ? 'text-blue-600' :
+                product.site === 'Croma' ? 'text-green-600' :
+                  product.site === 'Reliance' ? 'text-purple-600' :
+                    'text-gray-500'
               }`}>{product.site}</span>
             <span>•</span>
             <a href={product.url} target="_blank" className="text-blue-600 hover:underline">
@@ -104,8 +104,8 @@ export default function ProductDetailPage() {
             <button
               onClick={() => setActiveTab("details")}
               className={`px-4 py-2 font-medium transition-colors ${activeTab === "details"
-                  ? "border-b-2 border-blue-600 text-blue-600"
-                  : "text-gray-600 hover:text-gray-800"
+                ? "border-b-2 border-blue-600 text-blue-600"
+                : "text-gray-600 hover:text-gray-800"
                 }`}
             >
               Product Details
@@ -113,8 +113,8 @@ export default function ProductDetailPage() {
             <button
               onClick={() => setActiveTab("history")}
               className={`px-4 py-2 font-medium transition-colors ${activeTab === "history"
-                  ? "border-b-2 border-blue-600 text-blue-600"
-                  : "text-gray-600 hover:text-gray-800"
+                ? "border-b-2 border-blue-600 text-blue-600"
+                : "text-gray-600 hover:text-gray-800"
                 }`}
             >
               Price History
@@ -122,8 +122,8 @@ export default function ProductDetailPage() {
             <button
               onClick={() => setActiveTab("suggestions")}
               className={`px-4 py-2 font-medium transition-colors ${activeTab === "suggestions"
-                  ? "border-b-2 border-blue-600 text-blue-600"
-                  : "text-gray-600 hover:text-gray-800"
+                ? "border-b-2 border-blue-600 text-blue-600"
+                : "text-gray-600 hover:text-gray-800"
                 }`}
             >
               Price Analysis
@@ -269,8 +269,8 @@ export default function ProductDetailPage() {
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">Confidence:</span>
                   <span className={`px-2 py-1 rounded text-xs ${suggestedPrice.confidence === 'high' ? 'bg-green-100 text-green-800' :
-                      suggestedPrice.confidence === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
+                    suggestedPrice.confidence === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-gray-100 text-gray-800'
                     }`}>
                     {suggestedPrice.confidence}
                   </span>

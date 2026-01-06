@@ -10,7 +10,7 @@ export default function Home() {
   const [counts, setCounts] = useState({ amazon: 0, flipkart: 0, croma: 0, reliance: 0 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  
+
   // Alert Modal State
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
@@ -20,30 +20,30 @@ export default function Home() {
 
 
   async function handleSearch(e: React.FormEvent) {
-  e.preventDefault();
-  setLoading(true);
-  setError("");
+    e.preventDefault();
+    setLoading(true);
+    setError("");
 
-  try {
-    const res = await axios.get(`${BACKEND_URL}/api/compare`, {
-      params: { query: searchQuery }
-    });
-    setProducts(res.data.results || []); // results array
-    setCounts({
-      amazon: res.data.amazon || 0,
-      flipkart: res.data.flipkart || 0,
-      croma: res.data.croma || 0,
-      reliance: res.data.reliance || 0,
-    });
-  // } catch (err: any) {
-  //   setError(err?.message || "Failed to fetch products");
-  }catch (err: any) {
-  const msg = err?.response?.data?.error || err?.message || "Failed to fetch products";
-  setError(msg);
-  } finally {
-    setLoading(false);
+    try {
+      const res = await axios.get(`${BACKEND_URL}/api/compare`, {
+        params: { query: searchQuery }
+      });
+      setProducts(res.data.results || []); // results array
+      setCounts({
+        amazon: res.data.amazon || 0,
+        flipkart: res.data.flipkart || 0,
+        croma: res.data.croma || 0,
+        reliance: res.data.reliance || 0,
+      });
+      // } catch (err: any) {
+      //   setError(err?.message || "Failed to fetch products");
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || err?.message || "Failed to fetch products";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
   }
-}
 
   const openAlertModal = (product: any) => {
     setSelectedProduct(product);
@@ -111,33 +111,33 @@ export default function Home() {
         )}
 
         {/* Products List */}
-<div className="bg-white rounded-lg shadow-lg p-6">
-  <h2 className="text-2xl font-semibold text-gray-800 mb-6">
-    Products {products.length > 0 && `(${products.length})`}
-  </h2>
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-6">
+            Products {products.length > 0 && `(${products.length})`}
+          </h2>
 
-  {products.length === 0 ? (
-    <div className="text-center py-12">
-      <svg
-        className="mx-auto h-12 w-12 text-gray-400 mb-4"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-        />
-      </svg>
-      <p className="text-gray-500 text-lg">
-        No products found. Try searching for products!
-      </p>
-    </div>
-  ) : (
-    <div className="space-y-4">
-      {products.map((p: any, i: number) => (
+          {products.length === 0 ? (
+            <div className="text-center py-12">
+              <svg
+                className="mx-auto h-12 w-12 text-gray-400 mb-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              <p className="text-gray-500 text-lg">
+                No products found. Try searching for products!
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {products.map((p: any, i: number) => (
         <div
           key={i}
           className="border rounded p-4 flex gap-4 hover:bg-gray-50 transition-colors group"
@@ -154,10 +154,10 @@ export default function Home() {
           <div className="flex-1">
             <div className={`text-sm font-semibold ${
               p.site === 'Amazon' ? 'text-orange-600' :
-              p.site === 'Flipkart' ? 'text-blue-600' :
-              p.site === 'Croma' ? 'text-green-600' :
-              p.site === 'Reliance' ? 'text-purple-600' :
-              'text-gray-500'
+              p.site = 'Flipkart' ? 'text-blue-600' :
+              p.site ===Croma' ? 'text-green-600' :
+              p.site === 'liance' ? 'text-purple-600' :
+              'text-gray-500
             }`}>{p.site}</div>
             <a href={p.productUrl} target="_blank" className="font-medium hover:text-blue-600 line-clamp-2 mb-2">
               {p.title}
@@ -200,17 +200,17 @@ export default function Home() {
             </a>
           </div>
         </div>
-      ))}
-    </div>
+          ))}
+        </div>
   )}
-</div>
-
-    <AlertModal 
-        isOpen={isAlertOpen} 
-        onClose={() => setIsAlertOpen(false)} 
-        product={selectedProduct} 
-    />
       </div>
+
+      <AlertModal
+        isOpen={isAlertOpen}
+        onClose={() => setIsAlertOpen(false)}
+        product={selectedProduct}
+      />
     </div>
+    </div >
   );
 }

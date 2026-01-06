@@ -10,7 +10,7 @@ export default function AlertsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
-  
+
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000";
   // const [userId, setUserId] = useState("test123"); // Default test user
 
@@ -27,10 +27,10 @@ export default function AlertsPage() {
   }, []);
 
   useEffect(() => {
-  if (!isLoggedIn()) {
-    window.location.href = "/login";
-  }
-}, []);
+    if (!isLoggedIn()) {
+      window.location.href = "/login";
+    }
+  }, []);
 
   // async function loadAlerts() {
   //   try {
@@ -43,31 +43,31 @@ export default function AlertsPage() {
   //   }
   // }
 
-async function loadAlerts() {
-  try {
-    const token = localStorage.getItem("token");
+  async function loadAlerts() {
+    try {
+      const token = localStorage.getItem("token");
 
-    if (!token) {
-      setError("Please login to view alerts");
-      return;
-    }
+      if (!token) {
+        setError("Please login to view alerts");
+        return;
+      }
 
-    const res = await axios.get(`${BACKEND_URL}/api/alerts`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+      const res = await axios.get(`${BACKEND_URL}/api/alerts`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    setAlerts(res.data);
-    setError("");
-  } catch (err: any) {
-    if (err.response?.status === 401) {
-      setError("Session expired. Please login again.");
-    } else {
-      setError("Failed to load alerts");
+      setAlerts(res.data);
+      setError("");
+    } catch (err: any) {
+      if (err.response?.status === 401) {
+        setError("Session expired. Please login again.");
+      } else {
+        setError("Failed to load alerts");
+      }
     }
   }
-}
 
 
   async function loadSampleProducts() {
@@ -92,7 +92,7 @@ async function loadAlerts() {
       const res = await axios.get(`${BACKEND_URL}/api/products`);
       const products = res.data.results || [];
       setProducts(products);
-      
+
       // If no products exist, show helpful message
       if (products.length === 0) {
         setError("No products found. Please search for products on the main page first, then come back to create alerts.");
@@ -114,19 +114,19 @@ async function loadAlerts() {
       // });
 
       await axios.post(
-  `${BACKEND_URL}/api/alerts`,
-  {
-    product_id: newAlert.product_id,
-    target_price: parseFloat(newAlert.target_price),
-  },
-  {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-    },
-  }
-);
+        `${BACKEND_URL}/api/alerts`,
+        {
+          product_id: newAlert.product_id,
+          target_price: parseFloat(newAlert.target_price),
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
 
-      
+
       setNewAlert({ product_id: "", target_price: "" });
       setShowCreateForm(false);
       loadAlerts();
@@ -139,14 +139,14 @@ async function loadAlerts() {
 
   async function toggleAlert(alertId: string, isActive: boolean) {
     try {
-      await axios.patch(`${BACKEND_URL}/api/alerts/${alertId}`, 
-      {is_active: isActive},
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      }
-    );
+      await axios.patch(`${BACKEND_URL}/api/alerts/${alertId}`,
+        { is_active: isActive },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
       loadAlerts();
     } catch (err: any) {
       setError("Failed to update alert");
@@ -208,7 +208,7 @@ async function loadAlerts() {
                 </label>
                 <select
                   value={newAlert.product_id}
-                  onChange={(e) => setNewAlert({...newAlert, product_id: e.target.value})}
+                  onChange={(e) => setNewAlert({ ...newAlert, product_id: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 >
@@ -220,7 +220,7 @@ async function loadAlerts() {
                   ))}
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Target Price (₹):
@@ -229,13 +229,13 @@ async function loadAlerts() {
                   type="number"
                   step="0.01"
                   value={newAlert.target_price}
-                  onChange={(e) => setNewAlert({...newAlert, target_price: e.target.value})}
+                  onChange={(e) => setNewAlert({ ...newAlert, target_price: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter target price"
                   required
                 />
               </div>
-              
+
               <button
                 type="submit"
                 disabled={loading}
@@ -290,9 +290,8 @@ async function loadAlerts() {
                         </p>
                         <p className="text-sm">
                           <span className="font-medium">Status:</span>
-                          <span className={`ml-2 px-2 py-1 rounded text-xs ${
-                            alert.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                          }`}>
+                          <span className={`ml-2 px-2 py-1 rounded text-xs ${alert.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                            }`}>
                             {alert.is_active ? 'Active' : 'Inactive'}
                           </span>
                         </p>
@@ -301,11 +300,10 @@ async function loadAlerts() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => toggleAlert(alert._id, !alert.is_active)}
-                        className={`px-4 py-2 rounded font-medium transition-colors ${
-                          alert.is_active 
+                        className={`px-4 py-2 rounded font-medium transition-colors ${alert.is_active
                             ? 'bg-red-100 text-red-700 hover:bg-red-200'
                             : 'bg-green-100 text-green-700 hover:bg-green-200'
-                        }`}
+                          }`}
                       >
                         {alert.is_active ? 'Disable' : 'Enable'}
                       </button>
