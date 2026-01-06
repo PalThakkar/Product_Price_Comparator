@@ -9,16 +9,22 @@ interface AlertModalProps {
   product: any;
 }
 
-export default function AlertModal({ isOpen, onClose, product }: AlertModalProps) {
-  const [targetPrice, setTargetPrice] = useState(product?.currentPrice || "");
-  const [email, setEmail] = useState(""); // Optional if we want to capture email here, but backend expects user_id from auth. 
+export default function AlertModal({
+  isOpen,
+  onClose,
+  product,
+}: AlertModalProps) {
+  const [targetPrice, setTargetPrice] = useState(
+    product?.currentPrice || product?.price || ""
+  );
+  const [email, setEmail] = useState(""); // Optional if we want to capture email here, but backend expects user_id from auth.
   // Wait, backend `POST /api/alerts` uses `req.user.id` from `auth` middleware.
-  // This means the user MUST be logged in. 
+  // This means the user MUST be logged in.
   // `page.tsx` doesn't seem to have auth context visible in the code I read (it has a login link maybe? no, it has "Manage Alerts" link).
   // If the user uses `apps/frontend/app/page.tsx`, are they logged in?
   // `page.tsx` has `import { useState } from "react";`.
   // It has a navigation bar `Manage Alerts` pointing to `/alerts`.
-  // If I call `/api/alerts`, I need an auth token. 
+  // If I call `/api/alerts`, I need an auth token.
   // I should check if there is an auth context or token stored in localStorage.
   // The backend `auth` middleware likely checks `Authorization` header.
   // If `page.tsx` is public, we might have an issue if the user isn't logged in.
@@ -39,27 +45,35 @@ export default function AlertModal({ isOpen, onClose, product }: AlertModalProps
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        setMsg("You must be logged in to set an alert.");
+        setMsg(
+          "Please login or signup to set price alerts. Click 'Manage Alerts' to create an account."
+        );
         setLoading(false);
         return;
       }
 
-      const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000";
+      const BACKEND_URL =
+        process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000";
       await axios.post(
         `${BACKEND_URL}/api/alerts`,
         {
           product_id: product._id,
-          target_price: Number(targetPrice)
+          target_price: Number(targetPrice),
         },
         {
-          headers: { Authorization: `Bearer ${token}` } // Assuming Bearer token
+          headers: { Authorization: `Bearer ${token}` }, // Assuming Bearer token
         }
       );
       setMsg("Alert set successfully!");
       setTimeout(onClose, 2000);
     } catch (err: any) {
-      console.error(err);
-      setMsg(err.response?.data?.error || "Failed to set alert");
+      console.error("Alert creation error:", err);
+      const errorMsg =
+        err.response?.data?.error ||
+        err.response?.data?.details ||
+        err.message ||
+        "Failed to set alert";
+      setMsg(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -72,25 +86,56 @@ export default function AlertModal({ isOpen, onClose, product }: AlertModalProps
           Set Price Alert
         </h2>
         <p className="text-gray-600 mb-4 text-sm">
-          Receive a notification when {product.title.substring(0, 30)}... drops below your target price.
+          Receive a notification when {product.title.substring(0, 30)}... drops
+          below your target price.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Target Price (₹)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Target Price (₹)
+            </label>
+            <p className="text-xs text-gray-500 mb-2">
+              Current price: ₹{product.price || product.currentPrice}. Set a
+              lower price for an alert.
+            </p>
             <input
               type="number"
               required
               value={targetPrice}
               onChange={(e) => setTargetPrice(e.target.value)}
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-              placeholder="Enter target price"
+              placeholder="Enter target price (must be less than current)"
+              max={product.price || product.currentPrice}
             />
           </div>
 
           {msg && (
-            <div className={`text-sm p-2 rounded ${msg.includes("success") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+            <div
+              className={`text-sm p-3 rounded ${
+                msg.includes("success")
+                  ? "bg-green-50 text-green-700"
+                  : "bg-red-50 text-red-700"
+              }`}
+            >
               {msg}
+              {msg.includes("login") && (
+                <div className="mt-2 flex gap-2">
+                  <a
+                    href="/login"
+                    className="text-blue-600 hover:underline font-medium"
+                  >
+                    Login
+                  </a>
+                  <span>or</span>
+                  <a
+                    href="/signup"
+                    className="text-blue-600 hover:underline font-medium"
+                  >
+                    Sign Up
+                  </a>
+                </div>
+              )}
             </div>
           )}
 

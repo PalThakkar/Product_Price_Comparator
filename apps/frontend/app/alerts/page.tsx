@@ -3,6 +3,7 @@
 import { isLoggedIn } from "../utils/auth";
 import { useState, useEffect } from "react";
 import axios from "axios";
+import PriceHistoryChart from "../components/PriceHistoryChart";
 
 export default function AlertsPage() {
   const [alerts, setAlerts] = useState([]);
@@ -10,14 +11,18 @@ export default function AlertsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [checkingNow, setCheckingNow] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
+  const [expandedAlert, setExpandedAlert] = useState<string | null>(null);
 
-  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000";
+  const BACKEND_URL =
+    process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000";
   // const [userId, setUserId] = useState("test123"); // Default test user
 
   // Form state
   const [newAlert, setNewAlert] = useState({
     product_id: "",
-    target_price: ""
+    target_price: "",
   });
 
   // Load alerts and products
@@ -69,14 +74,15 @@ export default function AlertsPage() {
     }
   }
 
-
   async function loadSampleProducts() {
     try {
       // Do a quick search to populate some products
       const res = await axios.get(`${BACKEND_URL}/api/products`, {
-        params: { query: "phone" }
+        params: { query: "phone" },
       });
-      const products = res.data.results || [];
+      const products = Array.isArray(res.data)
+        ? res.data
+        : res.data.results || [];
       setProducts(products);
       if (products.length > 0) {
         setError("");
@@ -90,15 +96,21 @@ export default function AlertsPage() {
     try {
       // Load existing products from database (no query to get saved products)
       const res = await axios.get(`${BACKEND_URL}/api/products`);
-      const products = res.data.results || [];
+      const products = Array.isArray(res.data)
+        ? res.data
+        : res.data.results || [];
       setProducts(products);
 
       // If no products exist, show helpful message
       if (products.length === 0) {
-        setError("No products found. Please search for products on the main page first, then come back to create alerts.");
+        setError(
+          "No products found. Please search for products on the main page first, then come back to create alerts."
+        );
       }
     } catch (err: any) {
-      setError("Failed to load products. Please search for products on the main page first.");
+      setError(
+        "Failed to load products. Please search for products on the main page first."
+      );
     }
   }
 
@@ -126,7 +138,6 @@ export default function AlertsPage() {
         }
       );
 
-
       setNewAlert({ product_id: "", target_price: "" });
       setShowCreateForm(false);
       loadAlerts();
@@ -139,7 +150,8 @@ export default function AlertsPage() {
 
   async function toggleAlert(alertId: string, isActive: boolean) {
     try {
-      await axios.patch(`${BACKEND_URL}/api/alerts/${alertId}`,
+      await axios.patch(
+        `${BACKEND_URL}/api/alerts/${alertId}`,
         { is_active: isActive },
         {
           headers: {
@@ -153,6 +165,112 @@ export default function AlertsPage() {
     }
   }
 
+  async function checkAlertsNow() {
+    setCheckingNow(true);
+    setError("");
+    setSuccessMsg("");
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("Please login to check alerts");
+        return;
+      }
+
+      await axios.post(
+        `${BACKEND_URL}/api/alerts/check-now`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setSuccessMsg(
+        "✅ Alert check completed! Check your email if any price drops were detected."
+      );
+      setTimeout(() => setSuccessMsg(""), 5000);
+      loadAlerts(); // Reload to see updated statuses
+    } catch (err: any) {
+      setError(err.response?.data?.error || "Failed to check alerts");
+    } finally {
+      setCheckingNow(false);
+    }
+  }
+
+  async function exportAlertsCSV() {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(`${BACKEND_URL}/api/alerts/export/csv`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: "blob",
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "price-alerts.csv");
+      document.body.appendChild(link);
+      link.click();
+      link.parentElement?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setError("Failed to export CSV");
+    }
+  }
+
+  async function exportAlertsPDF() {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(`${BACKEND_URL}/api/alerts/export/pdf`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: "blob",
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "price-alerts.pdf");
+      document.body.appendChild(link);
+      link.click();
+      link.parentElement?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setError("Failed to export PDF");
+    }
+  }
+
+  async function exportPriceHistoryCSV(
+    productId: string,
+    productTitle: string
+  ) {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `${BACKEND_URL}/api/alerts/export/price-history/${productId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: "blob",
+        }
+      );
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `price-history-${productTitle.replace(/\s+/g, "-")}.csv`
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.parentElement?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setError("Failed to export price history");
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
@@ -161,9 +279,7 @@ export default function AlertsPage() {
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
             Price Alerts
           </h1>
-          <p className="text-lg text-gray-600">
-            Manage your price drop alerts
-          </p>
+          <p className="text-lg text-gray-600">Manage your price drop alerts</p>
         </div>
 
         {/* User ID Input */}
@@ -180,17 +296,36 @@ export default function AlertsPage() {
         </div> */}
 
         {/* Create Alert Button */}
-        <div className="mb-8 flex gap-4">
+        <div className="mb-8 flex gap-4 flex-wrap">
           <button
             onClick={() => setShowCreateForm(!showCreateForm)}
             className="px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors"
           >
             {showCreateForm ? "Cancel" : "Create New Alert"}
           </button>
+          <button
+            onClick={checkAlertsNow}
+            disabled={checkingNow}
+            className="px-6 py-3 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
+          >
+            {checkingNow ? "Checking..." : "🔍 Check Alerts Now"}
+          </button>
+          <button
+            onClick={exportAlertsCSV}
+            className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            📊 Export CSV
+          </button>
+          <button
+            onClick={exportAlertsPDF}
+            className="px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            📄 Export PDF
+          </button>
           {products.length === 0 && (
             <button
               onClick={loadSampleProducts}
-              className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition-colors"
             >
               Load Sample Products
             </button>
@@ -208,7 +343,9 @@ export default function AlertsPage() {
                 </label>
                 <select
                   value={newAlert.product_id}
-                  onChange={(e) => setNewAlert({ ...newAlert, product_id: e.target.value })}
+                  onChange={(e) =>
+                    setNewAlert({ ...newAlert, product_id: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 >
@@ -225,13 +362,39 @@ export default function AlertsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Target Price (₹):
                 </label>
+                {newAlert.product_id && (
+                  <p className="text-xs text-gray-500 mb-2">
+                    Current price: ₹
+                    {
+                      (
+                        products.find(
+                          (p: any) => p._id === newAlert.product_id
+                        ) as any
+                      )?.currentPrice
+                    }
+                    . Enter a lower price.
+                  </p>
+                )}
                 <input
                   type="number"
                   step="0.01"
                   value={newAlert.target_price}
-                  onChange={(e) => setNewAlert({ ...newAlert, target_price: e.target.value })}
+                  onChange={(e) =>
+                    setNewAlert({ ...newAlert, target_price: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter target price"
+                  placeholder="Enter target price (must be less than current)"
+                  max={
+                    newAlert.product_id
+                      ? String(
+                          (
+                            products.find(
+                              (p: any) => p._id === newAlert.product_id
+                            ) as any
+                          )?.currentPrice
+                        )
+                      : undefined
+                  }
                   required
                 />
               </div>
@@ -253,11 +416,21 @@ export default function AlertsPage() {
             <p className="text-red-600 mb-2">{error}</p>
             {error.includes("search for products") && (
               <div className="mt-3">
-                <a href="/" className="text-blue-600 hover:underline font-medium">
+                <a
+                  href="/"
+                  className="text-blue-600 hover:underline font-medium"
+                >
                   → Go to Main Page to Search Products
                 </a>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Success Message */}
+        {successMsg && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-green-600">{successMsg}</p>
           </div>
         )}
 
@@ -279,36 +452,83 @@ export default function AlertsPage() {
                 <div key={alert._id} className="border rounded-lg p-4">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <h3 className="font-semibold text-lg">{alert.product_id?.title}</h3>
+                      <h3 className="font-semibold text-lg">
+                        {alert.product_id?.title}
+                      </h3>
                       <p className="text-gray-600">{alert.product_id?.site}</p>
                       <div className="mt-2 space-y-1">
                         <p className="text-sm">
-                          <span className="font-medium">Current Price:</span> ₹{alert.product_id?.currentPrice}
+                          <span className="font-medium">Current Price:</span> ₹
+                          {alert.product_id?.currentPrice}
                         </p>
                         <p className="text-sm">
-                          <span className="font-medium">Target Price:</span> ₹{alert.target_price}
+                          <span className="font-medium">Target Price:</span> ₹
+                          {alert.target_price}
                         </p>
                         <p className="text-sm">
                           <span className="font-medium">Status:</span>
-                          <span className={`ml-2 px-2 py-1 rounded text-xs ${alert.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                            }`}>
-                            {alert.is_active ? 'Active' : 'Inactive'}
+                          <span
+                            className={`ml-2 px-2 py-1 rounded text-xs ${
+                              alert.is_active
+                                ? "bg-green-100 text-green-800"
+                                : "bg-gray-100 text-gray-800"
+                            }`}
+                          >
+                            {alert.is_active ? "Active" : "Inactive"}
                           </span>
                         </p>
                       </div>
                     </div>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => toggleAlert(alert._id, !alert.is_active)}
-                        className={`px-4 py-2 rounded font-medium transition-colors ${alert.is_active
-                            ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                            : 'bg-green-100 text-green-700 hover:bg-green-200'
-                          }`}
+                        onClick={() =>
+                          setExpandedAlert(
+                            expandedAlert === alert._id ? null : alert._id
+                          )
+                        }
+                        className="px-4 py-2 rounded font-medium transition-colors bg-blue-100 text-blue-700 hover:bg-blue-200"
                       >
-                        {alert.is_active ? 'Disable' : 'Enable'}
+                        {expandedAlert === alert._id ? "Hide" : "Show"} Chart
+                      </button>
+                      <button
+                        onClick={() => toggleAlert(alert._id, !alert.is_active)}
+                        className={`px-4 py-2 rounded font-medium transition-colors ${
+                          alert.is_active
+                            ? "bg-red-100 text-red-700 hover:bg-red-200"
+                            : "bg-green-100 text-green-700 hover:bg-green-200"
+                        }`}
+                      >
+                        {alert.is_active ? "Disable" : "Enable"}
                       </button>
                     </div>
                   </div>
+
+                  {/* Price History Chart */}
+                  {expandedAlert === alert._id &&
+                    alert.product_id?.priceHistory && (
+                      <div className="mt-6 pt-4 border-t">
+                        {" "}
+                        <div className="mb-4 flex gap-2">
+                          <button
+                            onClick={() =>
+                              exportPriceHistoryCSV(
+                                alert.product_id._id,
+                                alert.product_id.title
+                              )
+                            }
+                            className="px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm font-medium transition-colors"
+                          >
+                            📊 Export Price History
+                          </button>
+                        </div>{" "}
+                        <PriceHistoryChart
+                          priceHistory={alert.product_id.priceHistory}
+                          targetPrice={alert.target_price}
+                          currentPrice={alert.product_id.currentPrice}
+                          productTitle={alert.product_id.title}
+                        />
+                      </div>
+                    )}
                 </div>
               ))}
             </div>

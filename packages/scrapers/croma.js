@@ -12,15 +12,13 @@ async function scrapeCromaSearch(query, max = 8, opts = {}) {
   fs.mkdirSync(artifactsDir, { recursive: true });
 
   const browser = await puppeteer.launch({
-  headless: false,          // 👈 MUST be false
-  slowMo: 80,               // 👈 slows actions so we can see
-  args: [
-    "--no-sandbox",
-    "--disable-setuid-sandbox",
-    "--disable-blink-features=AutomationControlled"
-  ],
-});
-
+    headless: "new",
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-blink-features=AutomationControlled",
+    ],
+  });
 
   const page = await browser.newPage();
 
@@ -34,8 +32,8 @@ async function scrapeCromaSearch(query, max = 8, opts = {}) {
   )}`;
   console.log("[CRM] goto:", searchUrl);
   await page.setExtraHTTPHeaders({
-  "Accept-Language": "en-IN,en;q=0.9",
-});
+    "Accept-Language": "en-IN,en;q=0.9",
+  });
 
   await page.goto(searchUrl, {
     waitUntil: "networkidle0",
@@ -43,11 +41,9 @@ async function scrapeCromaSearch(query, max = 8, opts = {}) {
   });
 
   console.log("[CRM] waiting for product prices...");
-await page.waitForFunction(
-  () => document.body.innerText.includes("₹"),
-  { timeout: 30000 }
-);
-
+  await page.waitForFunction(() => document.body.innerText.includes("₹"), {
+    timeout: 30000,
+  });
 
   // Scroll to load lazy content
   await page.evaluate(async () => {
@@ -79,56 +75,55 @@ await page.waitForFunction(
 
   // Extract products (CARD-BASED)
   const results = await page.evaluate(() => {
-  const items = [];
+    const items = [];
 
-  const toNum = (s) =>
-    Number(String(s || "").replace(/[^\d]/g, "")) || null;
+    const toNum = (s) => Number(String(s || "").replace(/[^\d]/g, "")) || null;
 
-  // Find all nodes containing prices
-  const priceNodes = Array.from(document.querySelectorAll("*"))
-    .filter(el => el.innerText && el.innerText.match(/₹\s?[\d,]+/));
+    // Find all nodes containing prices
+    const priceNodes = Array.from(document.querySelectorAll("*")).filter(
+      (el) => el.innerText && el.innerText.match(/₹\s?[\d,]+/)
+    );
 
-  priceNodes.forEach((priceEl) => {
-    const priceText = priceEl.innerText.match(/₹\s?[\d,]+/)?.[0];
-    const price = toNum(priceText);
-    if (!price) return;
+    priceNodes.forEach((priceEl) => {
+      const priceText = priceEl.innerText.match(/₹\s?[\d,]+/)?.[0];
+      const price = toNum(priceText);
+      if (!price) return;
 
-    // Walk up to find a clickable parent
-    let parent = priceEl;
-    for (let i = 0; i < 6; i++) {
-      parent = parent.parentElement;
-      if (!parent) break;
+      // Walk up to find a clickable parent
+      let parent = priceEl;
+      for (let i = 0; i < 6; i++) {
+        parent = parent.parentElement;
+        if (!parent) break;
 
-      const link = parent.querySelector("a[href]");
-      const title =
-        parent.querySelector("h3")?.innerText ||
-        parent.querySelector("p")?.innerText ||
-        link?.innerText;
+        const link = parent.querySelector("a[href]");
+        const title =
+          parent.querySelector("h3")?.innerText ||
+          parent.querySelector("p")?.innerText ||
+          link?.innerText;
 
-      const image =
-        parent.querySelector("img")?.src ||
-        parent.querySelector("img")?.getAttribute("data-src");
+        const image =
+          parent.querySelector("img")?.src ||
+          parent.querySelector("img")?.getAttribute("data-src");
 
-      if (link && title) {
-        items.push({
-          site: "Croma",
-          title: title.trim(),
-          productUrl: link.href,
-          price,
-          image: image || null,
-        });
-        break;
+        if (link && title) {
+          items.push({
+            site: "Croma",
+            title: title.trim(),
+            productUrl: link.href,
+            price,
+            image: image || null,
+          });
+          break;
+        }
       }
-    }
+    });
+
+    return items;
   });
-
-  return items;
-});
-const hasPrice = await page.evaluate(() =>
-  document.body.innerText.includes("₹")
-);
-console.log("[CRM] page contains price symbol:", hasPrice);
-
+  const hasPrice = await page.evaluate(() =>
+    document.body.innerText.includes("₹")
+  );
+  console.log("[CRM] page contains price symbol:", hasPrice);
 
   console.log("[CRM] extracted:", results.length);
 
