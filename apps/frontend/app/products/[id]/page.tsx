@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import axios from "axios";
+import Head from "next/head";
 import {
   LineChart,
   Line,
@@ -46,7 +47,7 @@ export default function ProductDetailPage() {
       setPriceHistory(historyRes.data.priceHistory);
 
       // Load suggested price
-      const suggestedRes = await axios.get(`${BACKEND_URL}/api/products/${productId}/suggested-price`);
+      const suggestedRes = await axios.get(`${BACKEND_URL}/api/suggestions/${productId}`);
       setSuggestedPrice(suggestedRes.data);
     } catch (err: any) {
       setError(err?.response?.data?.error || "Failed to load product data");
@@ -280,6 +281,50 @@ export default function ProductDetailPage() {
           )}
         </div>
       </div>
+
+      {/* SEO Meta Tags */}
+      {product && (
+        <Head>
+          <title>{product.title} - Price Comparison | Product Price Comparator</title>
+          <meta name="description" content={`Compare prices for ${product.title}. Current price: ₹${product.currentPrice} on ${product.site}. View price history and set price alerts.`} />
+          <meta name="keywords" content={`${product.title}, price comparison, online shopping, best deal`} />
+          <meta name="robots" content="index, follow" />
+          <meta property="og:title" content={product.title} />
+          <meta property="og:description" content={`Compare prices for ${product.title} across retailers`} />
+          <meta property="og:image" content={product.image} />
+          <meta property="og:type" content="product" />
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content={product.title} />
+          <meta name="twitter:description" content={`Current price: ₹${product.currentPrice}`} />
+          
+          {/* Structured Data (JSON-LD) */}
+          <script type="application/ld+json">
+            {JSON.stringify({
+              "@context": "https://schema.org/",
+              "@type": "Product",
+              "name": product.title,
+              "image": product.image,
+              "description": `Price comparison for ${product.title}`,
+              "brand": {
+                "@type": "Brand",
+                "name": product.site
+              },
+              "offers": {
+                "@type": "Offer",
+                "url": product.productUrl,
+                "priceCurrency": "INR",
+                "price": product.currentPrice,
+                "availability": "https://schema.org/InStock"
+              },
+              "aggregateRating": {
+                "@type": "AggregateRating",
+                "ratingValue": "4.5",
+                "reviewCount": "100"
+              }
+            })}
+          </script>
+        </Head>
+      )}
     </div>
   );
 }

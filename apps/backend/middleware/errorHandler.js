@@ -1,14 +1,15 @@
 // Centralized error handling middleware
+const logger = require("../utils/logger");
 
 const errorHandler = (err, req, res, next) => {
-  // Log error
-  console.error("🔴 Error:", {
+  // Log error with logger
+  logger.error("Request Error", {
     message: err.message,
     status: err.status || 500,
     path: req.path,
     method: req.method,
     timestamp: new Date().toISOString(),
-    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
+    stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
   });
 
   // Set default error status

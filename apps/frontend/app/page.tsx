@@ -8,6 +8,7 @@ import LoadingSkeleton from "./components/LoadingSkeleton";
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [counts, setCounts] = useState({
     amazon: 0,
     flipkart: 0,
@@ -17,12 +18,30 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Filter State
+  const [filters, setFilters] = useState({
+    minPrice: 0,
+    maxPrice: Infinity,
+    selectedSites: { amazon: true, flipkart: true, croma: true, reliance: true },
+  });
+
   // Alert Modal State
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
   const BACKEND_URL =
     process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000";
+
+  // Apply filters
+  const applyFilters = () => {
+    let filtered = products.filter((p: any) => {
+      const priceMatch = p.price >= filters.minPrice && p.price <= filters.maxPrice;
+      const site = (p.site || p.retailer || "").toLowerCase();
+      const siteMatch = (filters.selectedSites as any)[site] || false;
+      return priceMatch && siteMatch;
+    });
+    setFilteredProducts(filtered);
+  };
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -33,7 +52,9 @@ export default function Home() {
       const res = await axios.get(`${BACKEND_URL}/api/search`, {
         params: { q: searchQuery },
       });
-      setProducts(res.data.results || []); // results array
+      const allProducts = res.data.results || [];
+      setProducts(allProducts);
+      setFilteredProducts(allProducts);
       setCounts({
         amazon: res.data.amazon || 0,
         flipkart: res.data.flipkart || 0,
@@ -58,7 +79,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
@@ -118,6 +139,116 @@ export default function Home() {
           </div>
         )}
 
+        {/* Filters Panel */}
+        {products.length > 0 && (
+          <div className="mb-6 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Price Range Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Min Price (₹)
+                </label>
+                <input
+                  type="number"
+                  value={filters.minPrice}
+                  onChange={(e) => {
+                    const newFilters = {
+                      ...filters,
+                      minPrice: Number(e.target.value) || 0,
+                    };
+                    setFilters(newFilters);
+                    setFilteredProducts(
+                      products.filter((p: any) => {
+                        const priceMatch =
+                          p.price >= newFilters.minPrice &&
+                          p.price <= newFilters.maxPrice;
+                        const site = (p.site || p.retailer || "").toLowerCase();
+                        const siteMatch =
+                          (newFilters.selectedSites as any)[site] || false;
+                        return priceMatch && siteMatch;
+                      })
+                    );
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Max Price (₹)
+                </label>
+                <input
+                  type="number"
+                  value={filters.maxPrice === Infinity ? "" : filters.maxPrice}
+                  onChange={(e) => {
+                    const newFilters = {
+                      ...filters,
+                      maxPrice: e.target.value === "" ? Infinity : Number(e.target.value),
+                    };
+                    setFilters(newFilters);
+                    setFilteredProducts(
+                      products.filter((p: any) => {
+                        const priceMatch =
+                          p.price >= newFilters.minPrice &&
+                          p.price <= newFilters.maxPrice;
+                        const site = (p.site || p.retailer || "").toLowerCase();
+                        const siteMatch =
+                          (newFilters.selectedSites as any)[site] || false;
+                        return priceMatch && siteMatch;
+                      })
+                    );
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Site Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Retailers
+                </label>
+                <div className="flex gap-2">
+                  {["amazon", "flipkart", "croma", "reliance"].map((site) => (
+                    <label key={site} className="flex items-center gap-1">
+                      <input
+                        type="checkbox"
+                        checked={(filters.selectedSites as any)[site] || false}
+                        onChange={(e) => {
+                          const newFilters = {
+                            ...filters,
+                            selectedSites: {
+                              ...filters.selectedSites,
+                              [site]: e.target.checked,
+                            },
+                          };
+                          setFilters(newFilters);
+                          setFilteredProducts(
+                            products.filter((p: any) => {
+                              const priceMatch =
+                                p.price >= newFilters.minPrice &&
+                                p.price <= newFilters.maxPrice;
+                              const siteMatch =
+                                (newFilters.selectedSites as any)[
+                                (p.site || p.retailer || "").toLowerCase()
+                              ] ||
+                                false;
+                              return priceMatch && siteMatch;
+                            })
+                          );
+                        }}
+                        className="w-4 h-4 rounded"
+                      />
+                      <span className="text-xs font-medium capitalize">
+                        {site}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Results Summary */}
         {products.length > 0 && (
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -131,6 +262,9 @@ export default function Home() {
               <span className="text-purple-600">
                 Reliance: {counts.reliance}
               </span>
+              <span className="text-gray-600">
+                Filtered: {filteredProducts.length}
+              </span>
             </div>
           </div>
         )}
@@ -138,12 +272,12 @@ export default function Home() {
         {/* Products List */}
         <div className="bg-white rounded-lg shadow-lg p-6">
           <h2 className="text-2xl font-semibold text-gray-800 mb-6">
-            Products {products.length > 0 && `(${products.length})`}
+            Products {filteredProducts.length > 0 && `(${filteredProducts.length})`}
           </h2>
 
           {loading && <LoadingSkeleton />}
 
-          {!loading && products.length === 0 ? (
+          {!loading && filteredProducts.length === 0 ? (
             <div className="text-center py-12">
               <svg
                 className="mx-auto h-12 w-12 text-gray-400 mb-4"
@@ -159,12 +293,14 @@ export default function Home() {
                 />
               </svg>
               <p className="text-gray-500 text-lg">
-                No products found. Try searching for products!
+                {products.length > 0
+                  ? "No products match your filters. Try adjusting them!"
+                  : "No products found. Try searching for products!"}
               </p>
             </div>
           ) : (
             <div className="space-y-4">
-              {products.map((p: any, i: number) => (
+              {filteredProducts.map((p: any, i: number) => (
                 <div
                   key={i}
                   className="border rounded p-4 flex gap-4 hover:bg-gray-50 transition-all card-hover fade-in group shadow-sm hover:shadow-md"

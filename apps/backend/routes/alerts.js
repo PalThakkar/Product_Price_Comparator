@@ -336,4 +336,53 @@ router.get("/alerts/export/pdf", auth, async (req, res) => {
   }
 });
 
+// GET price suggestion for a product
+router.get("/suggestions/:product_id", async (req, res) => {
+  try {
+    const { product_id } = req.params;
+    
+    const product = await Product.findById(product_id);
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    // Get price history
+    const priceHistory = product.priceHistory || [];
+    if (priceHistory.length === 0) {
+      return res.json({
+        currentPrice: product.currentPrice,
+        suggestedPrice: Math.floor(product.currentPrice * 0.9), // 10% discount
+        minPrice: product.currentPrice,
+        maxPrice: product.currentPrice,
+        avgPrice: product.currentPrice,
+        reasoning: "Suggest 10% below current price (no history available)"
+      });
+    }
+
+    // Calculate statistics
+    const prices = priceHistory.map(p => p.price);
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+    const avgPrice = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
+    
+    // Suggest price: 5% below average or 10% below minimum, whichever is lower
+    const belowAvg = Math.floor(avgPrice * 0.95);
+    const belowMin = Math.floor(minPrice * 0.9);
+    const suggestedPrice = Math.min(belowAvg, belowMin);
+
+    res.json({
+      currentPrice: product.currentPrice,
+      suggestedPrice,
+      minPrice,
+      maxPrice,
+      avgPrice,
+      priceDropPercentage: Math.round(((product.currentPrice - suggestedPrice) / product.currentPrice) * 100),
+      reasoning: `Based on ${priceHistory.length} price points. Min: ₹${minPrice}, Max: ₹${maxPrice}, Avg: ₹${avgPrice}`
+    });
+  } catch (error) {
+    console.error("Error getting price suggestion:", error);
+    res.status(500).json({ error: "Failed to get price suggestion" });
+  }
+});
+
 module.exports = router;

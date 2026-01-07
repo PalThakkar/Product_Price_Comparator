@@ -32,7 +32,7 @@ const limiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5, // limit login attempts to 5 per 15 minutes
+  max: 100, // limit login attempts to 100 per 15 minutes (increased for development)
   message: "Too many login attempts, please try again later.",
   skipSuccessfulRequests: true,
 });
@@ -88,14 +88,6 @@ app.get("/health", (req, res) => {
     mongodb:
       mongoose.connection.readyState === 1 ? "connected" : "disconnected",
   });
-});
-
-/* ======================
-   ERROR HANDLER
-====================== */
-app.use((err, req, res, next) => {
-  console.error("Server Error:", err);
-  res.status(500).json({ error: "Internal server error" });
 });
 
 /* ======================

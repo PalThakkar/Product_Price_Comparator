@@ -22,31 +22,35 @@ export default function Navbar() {
 
         {/* RIGHT - LINKS */}
         <div className="flex gap-6 items-center">
-          <Link href="/" className="hover:text-blue-600">
-            Home
+          <Link href="/" className="hover:text-blue-600 font-medium">
+            Search
+          </Link>
+
+          <Link href="/features" className="hover:text-purple-600 font-medium">
+            ✨ Features
           </Link>
 
           {loggedIn ? (
             <>
-              <Link href="/alerts" className="hover:text-blue-600">
-                Alerts
+              <Link href="/alerts" className="hover:text-blue-600 font-medium">
+                🔔 Alerts
               </Link>
 
               <button
                 onClick={logout}
-                className="text-red-600 hover:underline"
+                className="text-red-600 hover:underline font-medium"
               >
                 Logout
               </button>
             </>
           ) : (
             <>
-              <Link href="/login" className="hover:text-blue-600">
+              <Link href="/login" className="hover:text-blue-600 font-medium">
                 Login
               </Link>
 
-              <Link href="/signup" className="hover:text-blue-600">
-                Signup
+              <Link href="/signup" className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium">
+                Sign Up
               </Link>
             </>
           )}

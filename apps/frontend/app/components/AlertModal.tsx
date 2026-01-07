@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 
 interface AlertModalProps {
@@ -17,23 +17,35 @@ export default function AlertModal({
   const [targetPrice, setTargetPrice] = useState(
     product?.currentPrice || product?.price || ""
   );
-  const [email, setEmail] = useState(""); // Optional if we want to capture email here, but backend expects user_id from auth.
-  // Wait, backend `POST /api/alerts` uses `req.user.id` from `auth` middleware.
-  // This means the user MUST be logged in.
-  // `page.tsx` doesn't seem to have auth context visible in the code I read (it has a login link maybe? no, it has "Manage Alerts" link).
-  // If the user uses `apps/frontend/app/page.tsx`, are they logged in?
-  // `page.tsx` has `import { useState } from "react";`.
-  // It has a navigation bar `Manage Alerts` pointing to `/alerts`.
-  // If I call `/api/alerts`, I need an auth token.
-  // I should check if there is an auth context or token stored in localStorage.
-  // The backend `auth` middleware likely checks `Authorization` header.
-  // If `page.tsx` is public, we might have an issue if the user isn't logged in.
-  // "Manage Alerts" implies some account management.
-  // I will assume the user has a token in localStorage "token" or similar, based on `backend/middleware/auth.js` (I didn't read it but it's standard).
-  // I will check `apps/frontend/app/login/page.tsx` or similar if I had time, but standard practice is `localStorage.getItem('token')`.
-
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
+  const [suggestion, setSuggestion] = useState<any>(null);
+  const [loadingSuggestion, setLoadingSuggestion] = useState(false);
+
+  const BACKEND_URL =
+    process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000";
+
+  // Fetch price suggestion when modal opens
+  useEffect(() => {
+    if (isOpen && product?._id) {
+      fetchPriceSuggestion();
+    }
+  }, [isOpen, product?._id]);
+
+  async function fetchPriceSuggestion() {
+    setLoadingSuggestion(true);
+    try {
+      const res = await axios.get(
+        `${BACKEND_URL}/api/suggestions/${product._id}`
+      );
+      setSuggestion(res.data);
+    } catch (err) {
+      console.warn("Could not fetch price suggestion:", err);
+      setSuggestion(null);
+    } finally {
+      setLoadingSuggestion(false);
+    }
+  }
 
   if (!isOpen || !product) return null;
 
@@ -52,8 +64,6 @@ export default function AlertModal({
         return;
       }
 
-      const BACKEND_URL =
-        process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000";
       await axios.post(
         `${BACKEND_URL}/api/alerts`,
         {
@@ -61,7 +71,7 @@ export default function AlertModal({
           target_price: Number(targetPrice),
         },
         {
-          headers: { Authorization: `Bearer ${token}` }, // Assuming Bearer token
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
       setMsg("Alert set successfully!");
@@ -81,7 +91,7 @@ export default function AlertModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md transform transition-all scale-100">
+      <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md transform transition-all scale-100 max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 mb-4">
           Set Price Alert
         </h2>
@@ -89,6 +99,62 @@ export default function AlertModal({
           Receive a notification when {product.title.substring(0, 30)}... drops
           below your target price.
         </p>
+
+        {/* Price Suggestion Card */}
+        {loadingSuggestion ? (
+          <div className="mb-4 p-4 bg-blue-50 rounded-lg animate-pulse">
+            <div className="h-4 bg-blue-200 rounded w-3/4"></div>
+          </div>
+        ) : suggestion ? (
+          <div className="mb-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+            <div className="flex justify-between items-start mb-2">
+              <div>
+                <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">
+                  💡 Smart Recommendation
+                </p>
+                <p className="text-2xl font-bold text-green-700">
+                  ₹{suggestion.suggestedPrice?.toLocaleString()}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-green-600">Save</p>
+                <p className="text-lg font-bold text-green-600">
+                  {suggestion.priceDropPercentage}%
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-green-700 mb-3 italic">
+              {suggestion.reasoning}
+            </p>
+            <div className="grid grid-cols-3 gap-2 mb-3 text-xs">
+              <div className="bg-white p-2 rounded border border-green-200">
+                <p className="text-gray-600 font-medium">Min</p>
+                <p className="font-bold text-gray-800">
+                  ₹{suggestion.minPrice?.toLocaleString()}
+                </p>
+              </div>
+              <div className="bg-white p-2 rounded border border-green-200">
+                <p className="text-gray-600 font-medium">Avg</p>
+                <p className="font-bold text-gray-800">
+                  ₹{suggestion.avgPrice?.toLocaleString()}
+                </p>
+              </div>
+              <div className="bg-white p-2 rounded border border-green-200">
+                <p className="text-gray-600 font-medium">Current</p>
+                <p className="font-bold text-gray-800">
+                  ₹{suggestion.currentPrice?.toLocaleString()}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setTargetPrice(suggestion.suggestedPrice)}
+              className="w-full px-3 py-2 text-sm bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
+            >
+              ✓ Use This Suggestion
+            </button>
+          </div>
+        ) : null}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
