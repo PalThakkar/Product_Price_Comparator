@@ -2,6 +2,8 @@ const puppeteer = require("puppeteer");
 const fs = require("fs");
 const path = require("path");
 
+const SAVE_ARTIFACTS = process.env.SAVE_SCRAPER_ARTIFACTS === "true";
+
 async function scrapeCromaSearch(query, max = 8, opts = {}) {
   const debug = opts.debug === true;
 
@@ -9,7 +11,7 @@ async function scrapeCromaSearch(query, max = 8, opts = {}) {
     process.cwd(),
     "apps/backend/scraper_artifacts"
   );
-  fs.mkdirSync(artifactsDir, { recursive: true });
+  if (SAVE_ARTIFACTS) fs.mkdirSync(artifactsDir, { recursive: true });
 
   const browser = await puppeteer.launch({
     headless: "new",
@@ -62,16 +64,18 @@ async function scrapeCromaSearch(query, max = 8, opts = {}) {
   });
 
   // Save artifacts for debugging
-  const ts = Date.now();
-  await page.screenshot({
-    path: path.join(artifactsDir, `croma-${ts}.png`),
-    fullPage: true,
-  });
-  fs.writeFileSync(
-    path.join(artifactsDir, `croma-${ts}.html`),
-    await page.content(),
-    "utf8"
-  );
+  if (SAVE_ARTIFACTS) {
+    const ts = Date.now();
+    await page.screenshot({
+      path: path.join(artifactsDir, `croma-${ts}.png`),
+      fullPage: true,
+    });
+    fs.writeFileSync(
+      path.join(artifactsDir, `croma-${ts}.html`),
+      await page.content(),
+      "utf8"
+    );
+  }
 
   // Extract products (CARD-BASED)
   const results = await page.evaluate(() => {

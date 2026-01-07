@@ -9,14 +9,20 @@ const toNum = (s) => {
   return Number.isFinite(n) ? n : null;
 };
 
+const SAVE_ARTIFACTS = process.env.SAVE_SCRAPER_ARTIFACTS === "true";
+
 // artifacts ko hamesha apps/backend/scraper_artifacts me save karo
 const ART_DIR = path.resolve(__dirname, "../../apps/backend/scraper_artifacts");
 
-async function saveArtifacts(page, label) {
+async function saveArtifacts(page, label, { force = false } = {}) {
+  if (!SAVE_ARTIFACTS && !force) return;
   try {
     if (!fs.existsSync(ART_DIR)) fs.mkdirSync(ART_DIR, { recursive: true });
     const ts = Date.now();
-    await page.screenshot({ path: path.join(ART_DIR, `${label}-${ts}.png`), fullPage: true });
+    await page.screenshot({
+      path: path.join(ART_DIR, `${label}-${ts}.png`),
+      fullPage: true,
+    });
     const html = await page.content();
     fs.writeFileSync(path.join(ART_DIR, `${label}-${ts}.html`), html, "utf8");
     console.log("[AMZ] artifacts saved at:", ART_DIR);
@@ -44,7 +50,9 @@ async function autoScroll(page) {
 }
 
 async function scrapeAmazonSearch(query, max = 8, { debug = false } = {}) {
-  const url = `https://www.amazon.in/s?k=${encodeURIComponent(query)}&ref=nb_sb_noss`;
+  const url = `https://www.amazon.in/s?k=${encodeURIComponent(
+    query
+  )}&ref=nb_sb_noss`;
 
   const launchOpts = {
     headless: debug ? false : "new",
@@ -76,7 +84,7 @@ async function scrapeAmazonSearch(query, max = 8, { debug = false } = {}) {
     // Captcha?
     if (await page.$('form[action="/errors/validateCaptcha"]')) {
       console.warn("[AMZ] captcha page detected");
-      await saveArtifacts(page, "captcha");
+      await saveArtifacts(page, "captcha", { force: true });
       return [];
     }
 
@@ -93,57 +101,59 @@ async function scrapeAmazonSearch(query, max = 8, { debug = false } = {}) {
 
     // Debug info
     const title = await page.title();
-    const cardCount = await page.$$eval(
-      'div.s-main-slot div.s-result-item[data-component-type="s-search-result"]',
-      els => els.length
-    ).catch(() => 0);
+    const cardCount = await page
+      .$$eval(
+        'div.s-main-slot div.s-result-item[data-component-type="s-search-result"]',
+        (els) => els.length
+      )
+      .catch(() => 0);
     console.log("[AMZ] title:", title);
     console.log("[AMZ] cardCount:", cardCount);
 
     await saveArtifacts(page, "search");
 
     // Extract
-//     const results = await page.evaluate(() => {
-//       const items = [];
-//       const cards = document.querySelectorAll(
-//         'div.s-main-slot > div[data-asin][data-component-type="s-search-result"]'
-//       );
-//       const toNum = (s) => Number(String(s || "").replace(/[^\d]/g, "")) || null;
+    //     const results = await page.evaluate(() => {
+    //       const items = [];
+    //       const cards = document.querySelectorAll(
+    //         'div.s-main-slot > div[data-asin][data-component-type="s-search-result"]'
+    //       );
+    //       const toNum = (s) => Number(String(s || "").replace(/[^\d]/g, "")) || null;
 
-//       for (const c of cards) {
-//         const titleEl = c.querySelector("h2 a span");
-//         const linkEl = c.querySelector("h2 a.a-link-normal") || c.querySelector("h2 a");
-//         const priceEl = c.querySelector(".a-price .a-offscreen") || c.querySelector(".a-price > .a-price-whole");
-//         const imgEl = c.querySelector("img.s-image") || c.querySelector("img");
+    //       for (const c of cards) {
+    //         const titleEl = c.querySelector("h2 a span");
+    //         const linkEl = c.querySelector("h2 a.a-link-normal") || c.querySelector("h2 a");
+    //         const priceEl = c.querySelector(".a-price .a-offscreen") || c.querySelector(".a-price > .a-price-whole");
+    //         const imgEl = c.querySelector("img.s-image") || c.querySelector("img");
 
-//         const title = titleEl?.textContent?.trim() || null;
-//         const href = linkEl?.href || null;
-//         const priceText = priceEl?.textContent || "";
-//         const img = imgEl?.getAttribute("src") || null;
+    //         const title = titleEl?.textContent?.trim() || null;
+    //         const href = linkEl?.href || null;
+    //         const priceText = priceEl?.textContent || "";
+    //         const img = imgEl?.getAttribute("src") || null;
 
-//         if (title && href) {
-//           items.push({
-//             site: "Amazon",
-//             title,
-//             productUrl: href,
-//             price: toNum(priceText),
-//             image: img,
-//           });
-//         }
-//       }
-//       return items;
-//     });
+    //         if (title && href) {
+    //           items.push({
+    //             site: "Amazon",
+    //             title,
+    //             productUrl: href,
+    //             price: toNum(priceText),
+    //             image: img,
+    //           });
+    //         }
+    //       }
+    //       return items;
+    //     });
 
-//     console.log("[AMZ] extracted:", results.length);
-//     return results.slice(0, max);
-//   } catch (e) {
-//     console.error("[AMZ] error:", e);
-//     await saveArtifacts(page, "error");
-//     throw e;
-//   } finally {
-//     await browser.close();
-//   }
-// }
+    //     console.log("[AMZ] extracted:", results.length);
+    //     return results.slice(0, max);
+    //   } catch (e) {
+    //     console.error("[AMZ] error:", e);
+    //     await saveArtifacts(page, "error");
+    //     throw e;
+    //   } finally {
+    //     await browser.close();
+    //   }
+    // }
 
     // Extract (tolerant): use ASIN fallback for URL, multiple title/price selectors
     const results = await page.evaluate(() => {
@@ -178,8 +188,7 @@ async function scrapeAmazonSearch(query, max = 8, { debug = false } = {}) {
           c.querySelector("span.a-offscreen") ||
           null;
 
-        const imgEl =
-          c.querySelector("img.s-image") || c.querySelector("img");
+        const imgEl = c.querySelector("img.s-image") || c.querySelector("img");
 
         const title =
           (titleEl && titleEl.textContent && titleEl.textContent.trim()) ||
@@ -215,12 +224,21 @@ async function scrapeAmazonSearch(query, max = 8, { debug = false } = {}) {
 
     console.log("[AMZ] extracted:", results.length);
     if (results.length) {
-      console.log("[AMZ] sample:", results.slice(0, 3).map(r => ({ t: r.title?.slice(0,50), p: r.price, u: r.productUrl })));
+      console.log(
+        "[AMZ] sample:",
+        results
+          .slice(0, 3)
+          .map((r) => ({
+            t: r.title?.slice(0, 50),
+            p: r.price,
+            u: r.productUrl,
+          }))
+      );
     }
     return results.slice(0, max);
   } catch (e) {
     console.error("[AMZ] error:", e);
-    await saveArtifacts(page, "error");
+    await saveArtifacts(page, "error", { force: true });
     throw e;
   } finally {
     await browser.close();
@@ -228,6 +246,3 @@ async function scrapeAmazonSearch(query, max = 8, { debug = false } = {}) {
 }
 
 module.exports = { scrapeAmazonSearch };
-
-
-
