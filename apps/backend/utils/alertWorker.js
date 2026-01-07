@@ -1,6 +1,18 @@
 const nodemailer = require("nodemailer");
 const puppeteer = require("puppeteer");
 
+// Robust price parser: preserves decimals, strips currency/commas, returns rupees as integer
+function parsePrice(text) {
+  if (!text) return null;
+  const s = String(text).replace(/₹/g, "").replace(/,/g, "").trim();
+  const m = s.match(/(\d+(?:\.\d+)?)/);
+  if (!m) return null;
+  const value = parseFloat(m[1]);
+  if (!isFinite(value)) return null;
+  // Round to nearest rupee
+  return Math.round(value);
+}
+
 // Email transporter
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -59,15 +71,26 @@ async function scrapeCurrentPrice(url, site) {
         priceText = await (await el.getProperty("textContent")).jsonValue();
     }
 
-    // Fallback: try common price meta tags if specific failed
+    // Fallback: try common price meta tags and page text if specific failed
     if (!priceText) {
-      // ...
+      // Meta price
+      priceText = await page
+        .$eval('meta[itemprop="price"]', (el) => el.getAttribute("content"))
+        .catch(() => null);
+    }
+    if (!priceText) {
+      // Look for first INR-looking price in body text
+      const bodyText = await page.evaluate(() => document.body.innerText);
+      const m = bodyText && bodyText.match(/₹\s?[\d,]+(?:\.\d+)?/);
+      if (m) priceText = m[0];
     }
 
     if (priceText) {
-      const price = Number(String(priceText).replace(/[^\d]/g, ""));
-      console.log(`[Worker] Extracted price: ${price}`);
-      return price;
+      const price = parsePrice(priceText);
+      if (price != null) {
+        console.log(`[Worker] Extracted price: ${price}`);
+        return price;
+      }
     }
 
     return null;
@@ -91,7 +114,11 @@ async function checkAlerts(Alert, Product, User) {
 
       const currentPrice = await scrapeCurrentPrice(product.url, product.site);
 
-      if (currentPrice && currentPrice <= alert.target_price) {
+      if (
+        currentPrice !== null &&
+        currentPrice !== undefined &&
+        currentPrice <= alert.target_price
+      ) {
         console.log(
           `🔥 Alert Triggered! ${product.title} is now ${currentPrice} (Target: ${alert.target_price})`
         );

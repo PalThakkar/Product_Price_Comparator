@@ -34,15 +34,7 @@ export default function FeaturesPage() {
         "Set target prices for any product. Get email alerts when prices fall below your target. Checks every 30 minutes.",
       status: "✅ Active",
     },
-    {
-      id: "suggestion",
-      icon: "💡",
-      title: "Smart Price Suggestions",
-      description: "AI-powered price recommendations",
-      details:
-        "Analyzes price history and suggests ideal target prices. Shows min/max/avg prices and potential savings %.",
-      status: "✅ New",
-    },
+
     {
       id: "history",
       icon: "📈",
@@ -250,7 +242,9 @@ export default function FeaturesPage() {
             <div>
               <p className="text-white/80 mb-2">Fresh Search</p>
               <p className="text-3xl font-bold text-blue-300">5-10s</p>
-              <p className="text-sm text-white/60">Multi-site scraping in parallel</p>
+              <p className="text-sm text-white/60">
+                Multi-site scraping in parallel
+              </p>
             </div>
             <div>
               <p className="text-white/80 mb-2">Cached Search</p>
