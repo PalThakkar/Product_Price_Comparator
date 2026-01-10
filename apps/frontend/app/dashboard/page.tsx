@@ -33,7 +33,7 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-7xl mx-auto">
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-gray-900">My Dashboard</h1>
@@ -62,7 +62,7 @@ export default function DashboardPage() {
                 <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
                     <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                         <h2 className="text-lg font-semibold text-gray-900">Your Watchlist</h2>
-                        <a href="/alerts" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                        <a href="/alerts" className="btn btn-secondary">
                             Manage Alerts →
                         </a>
                     </div>
@@ -71,10 +71,8 @@ export default function DashboardPage() {
                         <div className="p-8 text-center text-gray-500">Loading your data...</div>
                     ) : alerts.length === 0 ? (
                         <div className="p-12 text-center">
-                            <p className="text-gray-500 mb-4">You haven't tracked any products yet.</p>
-                            <a href="/" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
-                                Start Searching
-                            </a>
+                            <p className="text-gray-600 mb-4">You haven't tracked any products yet.</p>
+                            <a href="/" className="btn btn-primary">Start Searching</a>
                         </div>
                     ) : (
                         <div className="divide-y divide-gray-200">

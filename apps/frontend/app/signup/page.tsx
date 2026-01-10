@@ -31,9 +31,9 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <form onSubmit={handleSignup} className="bg-white p-6 rounded shadow w-96">
-        <h1 className="text-2xl font-bold mb-4">Signup</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      <form onSubmit={handleSignup} className="bg-white/90 p-6 rounded-lg shadow w-96">
+        <h1 className="text-2xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-blue-600">Signup</h1>
 
         {error && <p className="text-red-600 mb-3">{error}</p>}
 
@@ -55,16 +55,13 @@ export default function SignupPage() {
           required
         />
 
-        <button
-          disabled={loading}
-          className="w-full bg-blue-600 text-white p-2 rounded"
-        >
+        <button disabled={loading} className="w-full btn btn-success">
           {loading ? "Creating..." : "Signup"}
         </button>
 
         <p className="mt-3 text-sm">
           Already have an account?{" "}
-          <a href="/login" className="text-blue-600 underline">
+          <a href="/login" className="text-blue-600 hover:underline">
             Login
           </a>
         </p>

@@ -25,7 +25,7 @@ export default function Navbar() {
     <nav className="bg-white shadow-md px-6 py-4">
       <div className="max-w-6xl mx-auto flex justify-between items-center">
         {/* LEFT - LOGO */}
-        <Link href="/" className="text-xl font-bold text-blue-600">
+        <Link href="/" className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-blue-600">
           PriceComparator
         </Link>
 
@@ -41,7 +41,7 @@ export default function Navbar() {
 
           {loggedIn ? (
             <>
-              <Link href="/alerts" className="hover:text-blue-600 font-medium">
+              <Link href="/alerts" className="btn btn-secondary">
                 🔔 Alerts
               </Link>
 
@@ -50,21 +50,18 @@ export default function Navbar() {
                   logout();
                   setLoggedIn(false);
                 }}
-                className="text-red-600 hover:underline font-medium"
+                className="btn btn-danger"
               >
                 Logout
               </button>
             </>
           ) : (
             <>
-              <Link href="/login" className="hover:text-blue-600 font-medium">
+              <Link href="/login" className="btn btn-outline">
                 Login
               </Link>
 
-              <Link
-                href="/signup"
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium"
-              >
+              <Link href="/signup" className="btn btn-success">
                 Sign Up
               </Link>
             </>

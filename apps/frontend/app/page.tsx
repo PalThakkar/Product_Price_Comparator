@@ -90,26 +90,9 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Navigation */}
-        <div className="mb-8 flex justify-center gap-4">
-          <a
-            href="/login"
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Login
-          </a>
-          <a
-            href="/signup"
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-          >
-            Sign Up
-          </a>
-          <a
-            href="/alerts"
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-          >
-            Manage Alerts
-          </a>
+        {/* Quick Link */}
+        <div className="mb-8 flex justify-center">
+          <a href="/alerts" className="btn btn-secondary">Manage Alerts</a>
         </div>
 
         {/* Search Bar */}
@@ -347,7 +330,7 @@ export default function Home() {
                           e.stopPropagation();
                           openAlertModal(p);
                         }}
-                        className="text-sm px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-sm hover:shadow-md"
+                        className="btn btn-primary text-sm"
                       >
                         🔔 Set Price Alert
                       </button>
