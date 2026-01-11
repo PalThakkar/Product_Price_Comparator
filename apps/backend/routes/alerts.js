@@ -87,7 +87,6 @@ router.post("/alerts", auth, async (req, res) => {
     res
       .status(500)
       .json({ error: "Failed to create alert", details: error.message });
-    res.status(500).json({ error: "Failed to create alert" });
   }
 });
 

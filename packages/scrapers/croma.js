@@ -2,11 +2,8 @@ const puppeteer = require("puppeteer");
 const fs = require("fs");
 const path = require("path");
 
-<<<<<<< HEAD
 const SAVE_ARTIFACTS = process.env.SAVE_SCRAPER_ARTIFACTS === "true";
 
-=======
->>>>>>> origin/main
 async function scrapeCromaSearch(query, max = 8, opts = {}) {
   const debug = opts.debug === true;
 
@@ -14,7 +11,6 @@ async function scrapeCromaSearch(query, max = 8, opts = {}) {
     process.cwd(),
     "apps/backend/scraper_artifacts"
   );
-<<<<<<< HEAD
   if (SAVE_ARTIFACTS) fs.mkdirSync(artifactsDir, { recursive: true });
 
   const browser = await puppeteer.launch({
@@ -25,20 +21,6 @@ async function scrapeCromaSearch(query, max = 8, opts = {}) {
       "--disable-blink-features=AutomationControlled",
     ],
   });
-=======
-  fs.mkdirSync(artifactsDir, { recursive: true });
-
-  const browser = await puppeteer.launch({
-  headless: false,          // 👈 MUST be false
-  slowMo: 80,               // 👈 slows actions so we can see
-  args: [
-    "--no-sandbox",
-    "--disable-setuid-sandbox",
-    "--disable-blink-features=AutomationControlled"
-  ],
-});
-
->>>>>>> origin/main
 
   const page = await browser.newPage();
 
@@ -52,13 +34,8 @@ async function scrapeCromaSearch(query, max = 8, opts = {}) {
   )}`;
   console.log("[CRM] goto:", searchUrl);
   await page.setExtraHTTPHeaders({
-<<<<<<< HEAD
     "Accept-Language": "en-IN,en;q=0.9",
   });
-=======
-  "Accept-Language": "en-IN,en;q=0.9",
-});
->>>>>>> origin/main
 
   await page.goto(searchUrl, {
     waitUntil: "networkidle0",
@@ -66,17 +43,9 @@ async function scrapeCromaSearch(query, max = 8, opts = {}) {
   });
 
   console.log("[CRM] waiting for product prices...");
-<<<<<<< HEAD
   await page.waitForFunction(() => document.body.innerText.includes("₹"), {
     timeout: 30000,
   });
-=======
-await page.waitForFunction(
-  () => document.body.innerText.includes("₹"),
-  { timeout: 30000 }
-);
-
->>>>>>> origin/main
 
   // Scroll to load lazy content
   await page.evaluate(async () => {
@@ -95,7 +64,6 @@ await page.waitForFunction(
   });
 
   // Save artifacts for debugging
-<<<<<<< HEAD
   if (SAVE_ARTIFACTS) {
     const ts = Date.now();
     await page.screenshot({
@@ -160,71 +128,6 @@ await page.waitForFunction(
     document.body.innerText.includes("₹")
   );
   console.log("[CRM] page contains price symbol:", hasPrice);
-=======
-  const ts = Date.now();
-  await page.screenshot({
-    path: path.join(artifactsDir, `croma-${ts}.png`),
-    fullPage: true,
-  });
-  fs.writeFileSync(
-    path.join(artifactsDir, `croma-${ts}.html`),
-    await page.content(),
-    "utf8"
-  );
-
-  // Extract products (CARD-BASED)
-  const results = await page.evaluate(() => {
-  const items = [];
-
-  const toNum = (s) =>
-    Number(String(s || "").replace(/[^\d]/g, "")) || null;
-
-  // Find all nodes containing prices
-  const priceNodes = Array.from(document.querySelectorAll("*"))
-    .filter(el => el.innerText && el.innerText.match(/₹\s?[\d,]+/));
-
-  priceNodes.forEach((priceEl) => {
-    const priceText = priceEl.innerText.match(/₹\s?[\d,]+/)?.[0];
-    const price = toNum(priceText);
-    if (!price) return;
-
-    // Walk up to find a clickable parent
-    let parent = priceEl;
-    for (let i = 0; i < 6; i++) {
-      parent = parent.parentElement;
-      if (!parent) break;
-
-      const link = parent.querySelector("a[href]");
-      const title =
-        parent.querySelector("h3")?.innerText ||
-        parent.querySelector("p")?.innerText ||
-        link?.innerText;
-
-      const image =
-        parent.querySelector("img")?.src ||
-        parent.querySelector("img")?.getAttribute("data-src");
-
-      if (link && title) {
-        items.push({
-          site: "Croma",
-          title: title.trim(),
-          productUrl: link.href,
-          price,
-          image: image || null,
-        });
-        break;
-      }
-    }
-  });
-
-  return items;
-});
-const hasPrice = await page.evaluate(() =>
-  document.body.innerText.includes("₹")
-);
-console.log("[CRM] page contains price symbol:", hasPrice);
-
->>>>>>> origin/main
 
   console.log("[CRM] extracted:", results.length);
 

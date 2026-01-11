@@ -2,11 +2,8 @@ const puppeteer = require("puppeteer");
 const fs = require("fs");
 const path = require("path");
 
-<<<<<<< HEAD
 const SAVE_ARTIFACTS = process.env.SAVE_SCRAPER_ARTIFACTS === "true";
 
-=======
->>>>>>> origin/main
 async function scrapeFlipkartSearch(query, max = 8, opts = {}) {
   const debug = opts.debug === true;
 
@@ -14,11 +11,7 @@ async function scrapeFlipkartSearch(query, max = 8, opts = {}) {
     process.cwd(),
     "apps/backend/scraper_artifacts"
   );
-<<<<<<< HEAD
   if (SAVE_ARTIFACTS) fs.mkdirSync(artifactsDir, { recursive: true });
-=======
-  fs.mkdirSync(artifactsDir, { recursive: true });
->>>>>>> origin/main
 
   const browser = await puppeteer.launch({
     headless: !debug,
@@ -69,7 +62,6 @@ async function scrapeFlipkartSearch(query, max = 8, opts = {}) {
     });
   });
 
-<<<<<<< HEAD
   // Save artifacts (debug only)
   if (SAVE_ARTIFACTS) {
     const ts = Date.now();
@@ -89,26 +81,6 @@ async function scrapeFlipkartSearch(query, max = 8, opts = {}) {
     const items = [];
 
     const toNum = (s) => Number(String(s || "").replace(/[^\d]/g, "")) || null;
-=======
-  // Save artifacts
-  const ts = Date.now();
-  await page.screenshot({
-    path: path.join(artifactsDir, `flipkart-${ts}.png`),
-    fullPage: true,
-  });
-
-  fs.writeFileSync(
-    path.join(artifactsDir, `flipkart-${ts}.html`),
-    await page.content()
-  );
-
-// EXTRACT (ROBUST + FLEXIBLE)
-  const results = await page.evaluate(() => {
-    const items = [];
-
-    const toNum = (s) =>
-      Number(String(s || "").replace(/[^\d]/g, "")) || null;
->>>>>>> origin/main
 
     const links = document.querySelectorAll("a[href*='/p/']");
 
@@ -121,10 +93,6 @@ async function scrapeFlipkartSearch(query, max = 8, opts = {}) {
         card.querySelector("a.s1Q9rs")?.textContent ||
         link.textContent;
 
-<<<<<<< HEAD
-=======
-
->>>>>>> origin/main
       let href = link.getAttribute("href");
       if (href && !href.startsWith("http")) {
         href = "https://www.flipkart.com" + href;
@@ -135,21 +103,12 @@ async function scrapeFlipkartSearch(query, max = 8, opts = {}) {
         card.querySelector("img")?.getAttribute("data-src") ||
         null;
 
-<<<<<<< HEAD
       // ✅ PRICE FIX
       const cardText = card.innerText || "";
       const priceMatch = cardText.match(/₹\s?[\d,]+/);
       const price = priceMatch
         ? Number(priceMatch[0].replace(/[^\d]/g, ""))
         : null;
-=======
-    // ✅ PRICE FIX 
-    const cardText = card.innerText || "";
-    const priceMatch = cardText.match(/₹\s?[\d,]+/);
-    const price = priceMatch
-    ? Number(priceMatch[0].replace(/[^\d]/g, ""))
-    : null;
->>>>>>> origin/main
 
       if (!title || !href) return;
 
@@ -170,13 +129,8 @@ async function scrapeFlipkartSearch(query, max = 8, opts = {}) {
   await browser.close();
 
   const clean = results.filter(
-<<<<<<< HEAD
     (p) => p.price != null && p.productUrl && p.title
   );
-=======
-  p => p.price != null && p.productUrl && p.title
-);
->>>>>>> origin/main
 
   return results.slice(0, max);
 }
