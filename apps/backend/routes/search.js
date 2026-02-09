@@ -7,14 +7,16 @@ const logger = require("../utils/logger");
 // Import scrapers from the packages directory
 const { scrapeAmazonSearch } = require("../../../packages/scrapers/amazon");
 const { scrapeFlipkartSearch } = require("../../../packages/scrapers/flipkart");
-const { scrapeCromaSearch } = require("../../../packages/scrapers/croma");
+// Use API-based scraper for better reliability on cloud hosting
+const { scrapeCromaSearch } = require("../../../packages/scrapers/cromaApi");
 
 // Redis client
 let redisClient = null;
 
 // Initialize Redis client
 try {
-  redisClient = redis.createClient({ host: "localhost", port: 6379 });
+  const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
+  redisClient = redis.createClient({ url: redisUrl });
   redisClient.on("error", (err) => {
     logger.warn("Redis connection error", err);
     redisClient = null; // Fall back to non-cached mode
@@ -63,9 +65,31 @@ router.get("/", async (req, res) => {
       scrapeCromaSearch(query),
     ]);
 
+    // Log scraper results for debugging
+    const scraperNames = ["Amazon", "Flipkart", "Croma"];
+    results.forEach((result, index) => {
+      if (result.status === "rejected") {
+        console.error(
+          `❌ ${scraperNames[index]} scraper failed:`,
+          result.reason?.message || result.reason,
+        );
+        logger.error(`${scraperNames[index]} scraper error`, {
+          error: result.reason,
+        });
+      } else {
+        const count = result.value?.length || 0;
+        console.log(
+          `✅ ${scraperNames[index]} scraper returned ${count} products`,
+        );
+        logger.info(`${scraperNames[index]} scraper success`, { count });
+      }
+    });
+
     const products = results
       .filter((r) => r.status === "fulfilled")
       .flatMap((r) => r.value || []);
+
+    console.log(`📦 Total products from all scrapers: ${products.length}`);
 
     // SAVE PRODUCTS TO DATABASE (upsert by URL)
     const savedProducts = [];
@@ -89,7 +113,7 @@ router.get("/", async (req, res) => {
               },
             },
           },
-          { upsert: true, new: true, setDefaultsOnInsert: true }
+          { upsert: true, new: true, setDefaultsOnInsert: true },
         );
         savedProducts.push({
           _id: saved._id,
@@ -140,7 +164,41 @@ router.get("/", async (req, res) => {
     res.json(response);
   } catch (error) {
     logger.error("Search error", error);
-    res.status(500).json({ error: "Search failed", message: error.message });
+    console.error("❌ Search route error:", error);
+    res.status(500).json({
+      error: "Search failed",
+      message: error.message,
+      details: process.env.NODE_ENV === "production" ? undefined : error.stack,
+    });
+  }
+});
+
+// Test endpoint to check scraper health
+router.get("/test", async (req, res) => {
+  try {
+    const testQuery = "laptop";
+    console.log("🧪 Testing scrapers with query:", testQuery);
+
+    const results = await Promise.allSettled([scrapeCromaSearch(testQuery)]);
+
+    const scraperStatus = {
+      croma: {
+        status: results[0].status,
+        productCount:
+          results[0].status === "fulfilled" ? results[0].value?.length : 0,
+        error:
+          results[0].status === "rejected" ? results[0].reason?.message : null,
+      },
+      environment: {
+        nodeEnv: process.env.NODE_ENV,
+        hasPuppeteerPath: !!process.env.PUPPETEER_EXECUTABLE_PATH,
+        puppeteerPath: process.env.PUPPETEER_EXECUTABLE_PATH,
+      },
+    };
+
+    res.json(scraperStatus);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

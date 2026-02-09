@@ -3,15 +3,14 @@ services:
     name: pricewatch-backend
     env: node
     rootDir: apps/backend
-    buildCommand: |
-      npm install &&
-      apt-get update &&
-      apt-get install -y chromium chromium-sandbox
+    buildCommand: npm install
     startCommand: node server.js
     envVars:
       - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
         value: "true"
       - key: PUPPETEER_EXECUTABLE_PATH
-        value: /usr/bin/chromium
+        value: /usr/bin/chromium-browser
       - key: NODE_ENV
         value: production
+    # Note: On Render free tier, use API-based scrapers (cromaApi, relianceApi)
+    # Puppeteer scrapers may fail due to missing Chromium
