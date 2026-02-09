@@ -34,7 +34,7 @@ async function scrapeCurrentPrice(url, site) {
     });
     const page = await browser.newPage();
     await page.setUserAgent(
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
     );
 
     // Set a reasonable timeout
@@ -110,22 +110,63 @@ async function checkAlerts(Alert, Product, User) {
 
     for (const alert of alerts) {
       const product = alert.product_id;
-      if (!product) continue;
+      if (!product) {
+        console.warn(`⚠️ Alert ${alert._id} has no product, skipping`);
+        continue;
+      }
 
-      const currentPrice = await scrapeCurrentPrice(product.url, product.site);
+      console.log(`\n📊 Checking alert for: ${product.title}`);
+      console.log(`   Target Price: ₹${alert.target_price}`);
+      console.log(`   Current Price (DB): ₹${product.currentPrice}`);
+      console.log(`   Last scraped: ${product.lastScrapedAt || "Never"}`);
 
-      if (
-        currentPrice !== null &&
-        currentPrice !== undefined &&
-        currentPrice <= alert.target_price
-      ) {
+      // Use currentPrice from database instead of scraping
+      // This is more reliable and faster
+      let currentPrice = product.currentPrice;
+
+      // Only scrape if price data is stale (older than 1 hour) or missing
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const isStale =
+        !product.lastScrapedAt || product.lastScrapedAt < oneHourAgo;
+
+      if (!currentPrice || isStale) {
+        console.log(`   🔄 Price data is stale, scraping fresh data...`);
+        const scrapedPrice = await scrapeCurrentPrice(
+          product.url,
+          product.site,
+        );
+        if (scrapedPrice !== null) {
+          currentPrice = scrapedPrice;
+          // Update product with new price
+          product.currentPrice = currentPrice;
+          product.lastScrapedAt = new Date();
+          product.priceHistory.push({
+            price: currentPrice,
+            at: new Date(),
+          });
+          await product.save();
+          console.log(`   ✅ Updated price to: ₹${currentPrice}`);
+        } else {
+          console.log(
+            `   ⚠️ Scraping failed, using DB price: ₹${currentPrice || "N/A"}`,
+          );
+        }
+      }
+
+      if (currentPrice === null || currentPrice === undefined) {
+        console.log(`   ⚠️ No price available, skipping alert`);
+        continue;
+      }
+
+      // Check if price is at or below target
+      if (currentPrice <= alert.target_price) {
         console.log(
-          `🔥 Alert Triggered! ${product.title} is now ${currentPrice} (Target: ${alert.target_price})`
+          `\n🔥 ALERT TRIGGERED! ${product.title}\n   Current: ₹${currentPrice} | Target: ₹${alert.target_price}`,
         );
 
         // Update Alert
         alert.triggered_at = new Date();
-        alert.is_active = false; // Disable after trigger? Or keep active? User choice. Let's disable to avoid spam.
+        alert.is_active = false; // Disable after trigger to avoid spam
         await alert.save();
 
         // Send Email
@@ -140,19 +181,20 @@ async function checkAlerts(Alert, Product, User) {
             if (user && user.email) {
               recipient = user.email;
             } else {
-              console.warn(`User not found for alert ID: ${alert._id}`);
+              console.warn(`⚠️ User not found for alert ID: ${alert._id}`);
             }
           } catch (userErr) {
             console.error(
-              `Error fetching user for alert ${alert._id}:`,
-              userErr.message
+              `❌ Error fetching user for alert ${alert._id}:`,
+              userErr.message,
             );
           }
         } else {
-          console.warn("User model not provided to worker.");
+          console.warn("⚠️ User model not provided to worker.");
         }
 
         if (recipient && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+          console.log(`📧 Sending alert email to: ${recipient}`);
           const mailOptions = {
             from: process.env.EMAIL_USER,
             to: recipient,
@@ -163,27 +205,38 @@ async function checkAlerts(Alert, Product, User) {
                 <p><strong>Current Price:</strong> ₹${currentPrice}</p>
                 <p><strong>Your Target Price:</strong> ₹${alert.target_price}</p>
                 <p><a href="${product.url}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 10px;">View Product</a></p>
-                <p style="color: #666; font-size: 12px; margin-top: 20px;">This alert has been automatically disabled to prevent spam.</p>
+                <p style="color: #666; font-size: 12px; margin-top: 20px;">This alert has been automatically disabled to prevent spam. You can create a new alert if needed.</p>
               `,
           };
 
           transporter.sendMail(mailOptions, (error, info) => {
-            if (error) console.log("❌ Error sending email:", error);
-            else console.log("✅ Email sent successfully:", info.response);
+            if (error) {
+              console.log("❌ Error sending email:", error.message);
+            } else {
+              console.log("✅ Email sent successfully:", info.response);
+            }
           });
         } else if (!recipient) {
           console.warn("⚠️ No recipient email found for alert");
         } else {
           console.warn("⚠️ EMAIL_USER or EMAIL_PASS not configured in .env");
+          console.log(
+            `   EMAIL_USER: ${process.env.EMAIL_USER ? "Set" : "Missing"}`,
+          );
+          console.log(
+            `   EMAIL_PASS: ${process.env.EMAIL_PASS ? "Set" : "Missing"}`,
+          );
         }
       } else {
         console.log(
-          `Price ${currentPrice} is above target ${alert.target_price}`
+          `   ℹ️ Price ₹${currentPrice} is above target ₹${alert.target_price}, no alert sent`,
         );
       }
     }
+
+    console.log("\n✅ Alert check completed\n");
   } catch (err) {
-    console.error("Error in checkAlerts:", err);
+    console.error("❌ Error in checkAlerts:", err);
   }
 }
 

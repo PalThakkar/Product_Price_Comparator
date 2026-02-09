@@ -65,7 +65,7 @@ router.post("/alerts", auth, async (req, res) => {
         "Alert already exists for user:",
         req.user.id,
         "product:",
-        product_id
+        product_id,
       );
       return res
         .status(400)
@@ -192,7 +192,7 @@ router.get("/alerts/export/csv", auth, async (req, res) => {
     res.setHeader("Content-Type", "text/csv");
     res.setHeader(
       "Content-Disposition",
-      "attachment; filename=price-alerts.csv"
+      "attachment; filename=price-alerts.csv",
     );
     res.send(csv);
   } catch (error) {
@@ -228,15 +228,15 @@ router.get(
         "Content-Disposition",
         `attachment; filename=price-history-${product.title.replace(
           /\s+/g,
-          "-"
-        )}.csv`
+          "-",
+        )}.csv`,
       );
       res.send(csv);
     } catch (error) {
       console.error("Error exporting price history:", error);
       res.status(500).json({ error: "Failed to export price history" });
     }
-  }
+  },
 );
 
 // GET export alerts as PDF
@@ -252,7 +252,7 @@ router.get("/alerts/export/pdf", auth, async (req, res) => {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      "attachment; filename=price-alerts.pdf"
+      "attachment; filename=price-alerts.pdf",
     );
     doc.pipe(res);
 
@@ -284,7 +284,7 @@ router.get("/alerts/export/pdf", auth, async (req, res) => {
         `Triggered Alerts: ${alerts.filter((a) => a.triggered_at).length}`,
         {
           indent: 10,
-        }
+        },
       );
     doc.moveDown();
 
@@ -320,7 +320,7 @@ router.get("/alerts/export/pdf", auth, async (req, res) => {
               ? new Date(alert.triggered_at).toLocaleDateString()
               : "Not triggered"
           }`,
-          { indent: 10 }
+          { indent: 10 },
         )
         .text(`Retailer: ${alert.product_id?.site || "N/A"}`, {
           indent: 10,
@@ -363,7 +363,7 @@ router.get("/suggestions/:product_id", async (req, res) => {
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
     const avgPrice = Math.round(
-      prices.reduce((a, b) => a + b, 0) / prices.length
+      prices.reduce((a, b) => a + b, 0) / prices.length,
     );
 
     // Suggest price: 5% below average or 10% below minimum, whichever is lower
@@ -378,13 +378,48 @@ router.get("/suggestions/:product_id", async (req, res) => {
       maxPrice,
       avgPrice,
       priceDropPercentage: Math.round(
-        ((product.currentPrice - suggestedPrice) / product.currentPrice) * 100
+        ((product.currentPrice - suggestedPrice) / product.currentPrice) * 100,
       ),
       reasoning: `Based on ${priceHistory.length} price points. Min: ₹${minPrice}, Max: ₹${maxPrice}, Avg: ₹${avgPrice}`,
     });
   } catch (error) {
     console.error("Error getting price suggestion:", error);
     res.status(500).json({ error: "Failed to get price suggestion" });
+  }
+});
+
+// POST manually trigger alert check (for testing/debugging)
+router.post("/alerts/check-now", auth, async (req, res) => {
+  try {
+    console.log("\n🔔 Manual alert check triggered by user:", req.user.email);
+
+    // Run alert check
+    await checkAlerts(Alert, Product, User);
+
+    // Get updated alerts for this user
+    const alerts = await Alert.find({ user_id: req.user.id })
+      .populate("product_id")
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    const summary = {
+      total: alerts.length,
+      active: alerts.filter((a) => a.is_active).length,
+      triggered: alerts.filter((a) => a.triggered_at).length,
+      message: "Alert check completed successfully",
+    };
+
+    res.json({
+      success: true,
+      summary,
+      recentAlerts: alerts,
+    });
+  } catch (error) {
+    console.error("Error in manual alert check:", error);
+    res.status(500).json({
+      error: "Failed to check alerts",
+      message: error.message,
+    });
   }
 });
 
